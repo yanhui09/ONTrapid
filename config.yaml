@@ -1,0 +1,4 @@
+work_dir: "/mnt/md0/metapredict"
+threads:
+  normal: 4
+  large: 8

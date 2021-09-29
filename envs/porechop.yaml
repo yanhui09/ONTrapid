@@ -1,0 +1,5 @@
+name: porechop
+channels:
+  - bioconda
+dependencies:
+  - porechop 

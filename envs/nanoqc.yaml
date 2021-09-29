@@ -1,0 +1,7 @@
+name: nanoqc
+channels:
+  - bioconda
+dependencies:
+  - nanoqc
+  - nanofilt
+  - nanostat

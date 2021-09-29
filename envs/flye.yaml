@@ -1,0 +1,5 @@
+name: flye
+channels:
+  - bioconda
+dependencies:
+  - flye
