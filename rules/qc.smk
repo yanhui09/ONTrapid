@@ -71,3 +71,5 @@ rule qc_stat:
 	shell:
 		"""
 		NanoStat --fastq {input.fastq} > {output} 2> {log}
+
+include: "assembly.smk"

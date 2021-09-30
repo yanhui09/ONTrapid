@@ -1,0 +1,6 @@
+name: polish
+channels:
+  - bioconda
+dependencies:
+  - racon
+  - medaka

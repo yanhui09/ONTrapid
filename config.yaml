@@ -1,7 +1,7 @@
 work_dir: "/mnt/md0/metapredict"
 threads:
   normal: 2
-  large: 8
+  large: 4
 
 # nanofilt params
 nanofilt:
@@ -9,3 +9,6 @@ nanofilt:
   q: 10
   headcrop: 50
   tialcrop: 50
+# flye params
+flye:
+  mode: --nano-raw

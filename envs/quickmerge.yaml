@@ -1,0 +1,5 @@
+name: quickmerge
+channels:
+  - bioconda
+dependencies:
+  - quickmerge
