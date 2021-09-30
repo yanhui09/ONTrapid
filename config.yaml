@@ -9,6 +9,12 @@ nanofilt:
   q: 10
   headcrop: 50
   tialcrop: 50
-# flye params
+# assembler params
 flye:
   mode: --nano-raw
+
+canu:
+  size: 20m # estimated genomesize
+  usegrid: False
+  grid_opts: ''
+  ex_args: 'cnsThreads=2 cnsMemory=32'
