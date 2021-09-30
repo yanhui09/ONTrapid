@@ -18,3 +18,9 @@ canu:
   usegrid: False
   grid_opts: ''
   ex_args: 'cnsThreads=2 cnsMemory=32'
+
+# quickmerge params (conseverative merge of lathe)
+quickmerge:
+  ml: 10000
+  c: 5
+  hco: 10
