@@ -1,4 +1,11 @@
 work_dir: "/mnt/md0/metapredict"
 threads:
-  normal: 4
+  normal: 2
   large: 8
+
+# nanofilt params
+nanofilt:
+  l: 1000
+  q: 10
+  headcrop: 50
+  tialcrop: 50

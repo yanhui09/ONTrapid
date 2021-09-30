@@ -4,6 +4,7 @@ configfile: "config.yaml"
 
 #-----------------
 WORK_DIR = config["work_dir"]
+OUT_DIR = WORK_DIR + "/results"
 
 # load sample table
 def load_sample_table(sample_table=WORK_DIR + "/samples.tsv"):
@@ -19,7 +20,7 @@ def get_fqs_dir(sample, header):
 
 #---------------------------------
 rull all:
-     input: WORK_DIR + "/results/Finished"
+     input: OUT_DIR + "/Finished"
 
 # intialize input     
 def get_input(wildcards):
@@ -29,10 +30,10 @@ def get_input(wildcards):
 
 rule init:
     input: get_input
-    output: WORK_DIR + "/results/init/{sample}.fastq"
+    output: OUT_DIR + "/init/{sample}.fastq"
     message: "Initialize input"
-    log: WORK_DIR + "/results/logs/init/{sample}.log"
-    benchmark: WORK_DIR + "/results/bechmarks/init/{sample}.txt"
+    log: OUT_DIR + "/logs/init/{sample}.log"
+    benchmark: OUT_DIR + "/bechmarks/init/{sample}.txt"
     shell:
         "zcat {input} > {output} 2> {log}"
 
