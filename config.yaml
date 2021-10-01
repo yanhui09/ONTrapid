@@ -24,3 +24,19 @@ quickmerge:
   ml: 10000
   c: 5
   hco: 10
+
+# minimap params
+minimap:
+  x: map-ont 
+
+# racon params (lathe setting)
+racon:
+  iter: 1
+  m: 8
+  x: 6
+  g: 8
+  w: 500
+
+# medaka params:
+medaka:
+  model: r941_min_fast_g507

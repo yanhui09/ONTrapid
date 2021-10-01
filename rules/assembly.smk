@@ -67,23 +67,23 @@ use rule quast as quast1 with:
 rule quickmerge:
     input:
         query = rules.flye.output.fasta,
-	ref = rules.canu.output.fasta,
+        ref = rules.canu.output.fasta,
     output: 
         fasta = OUT_DIR + "/{sample}/quickmerge/1/merged.fasta",
     message: "Merge assemblies"
     params: 
         ml=config["quickmerge"]["ml"],
-	c=config["quickmerge"]["c"],
-	hco=config["quickmerge"]["hco"],
-	p=OUT_DIR + "/{sample}/quickmerge/1/merged",
+        c=config["quickmerge"]["c"],
+        hco=config["quickmerge"]["hco"],
+        p=OUT_DIR + "/{sample}/quickmerge/1/merged",
     conda: "../envs/quickmerge.yaml"
     log: OUT_DIR + "/logs/quickmerge/1/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/quickmerge/1/{sample}.txt"
     shell:
         "merge_wrapper.py {input.query} {input.ref}"
-	" -ml {params.ml} -c {params.c}"
-	" -hco {params.hco} -p {params.p}"
-	" > {log} 2>&1"
+        " -ml {params.ml} -c {params.c}"
+        " -hco {params.hco} -p {params.p}"
+        " > {log} 2>&1"
 
 use rule quast as quast2 with:
     input: rules.quickmerge.output.fasta
@@ -94,11 +94,11 @@ use rule quast as quast2 with:
 use rule quickmerge as quickmerge1 with:
     input:
         query = rules.canu.output.fasta,
-	ref = rules.flye.output.fasta,
+        ref = rules.flye.output.fasta,
     output: 
         fasta = OUT_DIR + "/{sample}/quickmerge/2/merged.fasta",
     params: 
-	p=OUT_DIR + "/{sample}/quickmerge/2/merged",
+        p=OUT_DIR + "/{sample}/quickmerge/2/merged",
     log: OUT_DIR + "/logs/quickmerge/2/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/quickmerge/2/{sample}.txt"
  
@@ -109,4 +109,36 @@ use rule quast as quast3 with:
     benchmark: OUT_DIR + "/benchmarks/quast/merge_2/{sample}.txt"
 
 # polish with racon and medaka
-# assuming quickmerge1 is better (flye > canu)
+# assuming quickmerge is better (flye > canu)
+# align merged assemblies with raw reads
+# reuse for racon iterations
+rule get_polish_input:
+    input: 
+        rules.quast.output,
+        fasta = rules.quickmerge.output.fasta,
+
+rule minimap:
+    input: 
+      ref = OUT_DIR + "/{sample}/polish/{f}.fas"
+      fastq = rules.nanofilt.output,
+    output: OUT_DIR + "/{sample}/quickmerge/1/merged.paf"
+    message: "Alignments against merged assemblies"
+    params:
+        x=config["minimap"]["x"]
+    conda: "../envs/polish.yaml"
+    log: OUT_DIR + "/logs/minimap/{sample}.log"
+    benchmark: OUT_DIR + "/benchmarks/minimap/{sample}.txt"
+    threads: config["threads"]["large"]
+    shell:
+        "minimap2 -t {threads} -x {params.x}"
+        " {input.ref} {input.fastq} > {output} 2> {log}"
+
+
+def get_racon_input(wildcards):
+    # adjust input based on racon iteritions
+    if int(wildcards.iter) == 1:
+        return(rules.minimap.output, 
+        rules..quickmerge.output.fasta)
+    else:
+        result = "{sample}/2.polish/racon/{sample}_racon_{iter}.fa".format(sample = wildcards.sample, iter = str(int(wildcards.iteration) - 1))
+        return(result + '.paf', result)

@@ -4,3 +4,4 @@ channels:
 dependencies:
   - racon
   - medaka
+  - minimap
