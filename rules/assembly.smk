@@ -20,27 +20,16 @@ rule flye:
         --threads {threads} > {log} 2>&1
         """
 
-rule quast:
-    input: rules.flye.output.fasta
-    output: directory(OUT_DIR + "/{sample}/quast/flye"),
-    message: "Assembly stats with quast"
-    conda: "../envs/quast.yaml"
-    log: OUT_DIR + "/logs/quast/flye/{sample}.log"
-    benchmark: OUT_DIR + "/benchmarks/quast/flye/{sample}.txt"
-    threads: config["threads"]["normal"]
-    shell:
-        "quast.py {input} -o {output} --threads {threads} > {log} 2>&1"
-
 # canu
 rule canu:
     input:
         rules.qc_stat.output,
         fastq = rules.nanofilt.output,
     output:
-        fasta = OUT_DIR + "/{sample}/canu/{sample}.fasta"),
+        fasta = OUT_DIR + "/{sample}/canu/assembly.fasta"),
     message: "Assembly with canu"
     params:
-	p="{sample}",
+	p="assembly",
 	d=OUT_DIR + "/{sample}/canu",
 	size=config["canu"]["size"],
 	usegrid=conig["canu"]["usegrid"],
@@ -56,12 +45,6 @@ rule canu:
 	" useGrid={params.usegrid} gridOptions={params.grid_opts}"
 	" > {log} 2>&1"
 
-use rule quast as quast1 with:
-    input: rules.canu.output.fasta
-    output: directory(OUT_DIR + "/{sample}/quast/canu"),
-    log: OUT_DIR + "/logs/quast/canu/{sample}.log"
-    benchmark: OUT_DIR + "/benchmarks/quast/canu/{sample}.txt"
-
 # consensus from multiple contig sets, two-round quickmerge
 # To do: include options for hybrid-assembly
 rule quickmerge:
@@ -69,59 +52,63 @@ rule quickmerge:
         query = rules.flye.output.fasta,
         ref = rules.canu.output.fasta,
     output: 
-        fasta = OUT_DIR + "/{sample}/quickmerge/1/merged.fasta",
+        fasta = OUT_DIR + "/{sample}/quickmerge1/assembly.fasta",
     message: "Merge assemblies"
     params: 
         ml=config["quickmerge"]["ml"],
         c=config["quickmerge"]["c"],
         hco=config["quickmerge"]["hco"],
-        p=OUT_DIR + "/{sample}/quickmerge/1/merged",
+        p=OUT_DIR + "/{sample}/quickmerge1/assembly",
     conda: "../envs/quickmerge.yaml"
-    log: OUT_DIR + "/logs/quickmerge/1/{sample}.log"
-    benchmark: OUT_DIR + "/benchmarks/quickmerge/1/{sample}.txt"
+    log: OUT_DIR + "/logs/quickmerge1/{sample}.log"
+    benchmark: OUT_DIR + "/benchmarks/quickmerge1/{sample}.txt"
     shell:
         "merge_wrapper.py {input.query} {input.ref}"
         " -ml {params.ml} -c {params.c}"
         " -hco {params.hco} -p {params.p}"
         " > {log} 2>&1"
 
-use rule quast as quast2 with:
-    input: rules.quickmerge.output.fasta
-    output: directory(OUT_DIR + "/{sample}/quast/merge_1"),
-    log: OUT_DIR + "/logs/quast/merge_1/{sample}.log"
-    benchmark: OUT_DIR + "/benchmarks/quast/merge_1/{sample}.txt"
-
 use rule quickmerge as quickmerge1 with:
     input:
         query = rules.canu.output.fasta,
         ref = rules.flye.output.fasta,
     output: 
-        fasta = OUT_DIR + "/{sample}/quickmerge/2/merged.fasta",
+        fasta = OUT_DIR + "/{sample}/quickmerge2/assembly.fasta",
     params: 
-        p=OUT_DIR + "/{sample}/quickmerge/2/merged",
-    log: OUT_DIR + "/logs/quickmerge/2/{sample}.log"
-    benchmark: OUT_DIR + "/benchmarks/quickmerge/2/{sample}.txt"
+        p=OUT_DIR + "/{sample}/quickmerge2/assembly",
+    log: OUT_DIR + "/logs/quickmerge2/{sample}.log"
+    benchmark: OUT_DIR + "/benchmarks/quickmerge2/{sample}.txt"
  
-use rule quast as quast3 with:
-    input: rules.quickmerge1.output.fasta
-    output: directory(OUT_DIR + "/{sample}/quast/merge_2"),
-    log: OUT_DIR + "/logs/quast/merge_2/{sample}.log"
-    benchmark: OUT_DIR + "/benchmarks/quast/merge_2/{sample}.txt"
+rule quast:
+    input: OUT_DIR + "/{sample}/{f}/assembly.fasta"
+    output: directory(OUT_DIR + "/{sample}/quast/{f}"),
+    message: "Assembly stats with quast"
+    conda: "../envs/quast.yaml"
+    log: OUT_DIR + "/logs/quast/{f}/{sample}.log"
+    benchmark: OUT_DIR + "/benchmarks/quast/{f}/{sample}.txt"
+    threads: config["threads"]["normal"]
+    shell:
+        "quast.py {input} -o {output} --threads {threads} > {log} 2>&1"
+
 
 # polish with racon and medaka
 # assuming quickmerge is better (flye > canu)
-# align merged assemblies with raw reads
-# reuse for racon iterations
 rule get_polish_input:
     input: 
-        rules.quast.output,
+        expand(OUT_DIR + "/{{sample}}/quast/{f}", 
+        f=["flye", "canu", "quickmerge1", "quickmerge2"]),
         fasta = rules.quickmerge.output.fasta,
+    output: OUT_DIR + "/{sample}/polish/raw.fasta"
+    message: "In preparation for polishing"
+    shell: "cp {input.fasta} {output}"
 
+# align merged assemblies with raw reads
+# reuse for racon iterations
 rule minimap:
     input: 
-      ref = OUT_DIR + "/{sample}/polish/{f}.fas"
+      ref = OUT_DIR + "/{sample}/polish/{f}.fasta"
       fastq = rules.nanofilt.output,
-    output: OUT_DIR + "/{sample}/quickmerge/1/merged.paf"
+    output: OUT_DIR + "/{sample}/polish/{f}.paf"
     message: "Alignments against merged assemblies"
     params:
         x=config["minimap"]["x"]
@@ -133,12 +120,53 @@ rule minimap:
         "minimap2 -t {threads} -x {params.x}"
         " {input.ref} {input.fastq} > {output} 2> {log}"
 
-
 def get_racon_input(wildcards):
     # adjust input based on racon iteritions
     if int(wildcards.iter) == 1:
-        return(rules.minimap.output, 
-        rules..quickmerge.output.fasta)
+        return(rules.minimap.output, rules.get_polish_input.output)
     else:
-        result = "{sample}/2.polish/racon/{sample}_racon_{iter}.fa".format(sample = wildcards.sample, iter = str(int(wildcards.iteration) - 1))
-        return(result + '.paf', result)
+        prefix = OUT_DIR + "/{sample}/polish/racon_{iter}".format(sample = wildcards.sample, iter = str(int(wildcards.iter) - 1))
+        return(prefix + ".paf", prefix + ".fasta")
+
+rule racon:
+    input:
+        rules.nanofilt.output,
+        get_racon_input,
+    output: OUT_DIR + "/{sample}/polish/racon_{iter}.fasta"
+    message: "Polish with racon, iterations={iter}"
+    params:
+        m=config["racon"]["m"],
+        x=config["racon"]["x"],
+        g=config["racon"]["g"],
+        w=config["racon"]["w"],
+    conda: "../envs/polish.yaml"
+    log: OUT_DIR +"/logs/polish/racon/{sample}_round{iter}.log"
+    benchmark: OUT_DIR +"/benchmarks//polish/racon/{sample}_round{iter}.txt"
+    threads: config["threads"]["large"]
+    shell:
+        "racon -m {param.m} -x {params.x}"
+        " -g {params.g} -w {params.w} -t {threads}"
+        " {input} > {output} 2>{log}"
+
+checkpoint medaka_consensus:
+    input:
+        fasta = expand(OUT_DIR + "/{{sample}}/polish/racon_{iter}.fasta", 
+        iter = config["racon"]["iter"]),
+        fastq = rules.nanofilt.output,
+    output: 
+        fasta = OUT_DIR + "/{sample}/polish/medaka/consensus.fasta"
+    message: "Generate consensus with medaka"
+    params:
+        m=config["medaka"]["m"],
+        _dir=OUT_DIR + "/{sample}/polish/medaka",
+    conda: "../envs/polish.yaml"
+    log: OUT_DIR + "/logs/polish/medaka/{sample}.log"
+    benchmark: OUT_DIR + "/benchmarks/polish/medaka/{sample}.txt"
+    threads: config["threads"]["large"]
+    shell:
+        "medaka_consensus -i {input.fastq}"
+        " -d {input.fasta} -o {params._dir}"
+        " -t {threads} -m {params.m} > {log} 2>&1"
+
+# circularization with circulator
+

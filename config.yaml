@@ -7,8 +7,8 @@ threads:
 nanofilt:
   l: 1000
   q: 10
-  headcrop: 50
-  tialcrop: 50
+  headcrop: 0
+  tialcrop: 0
 # assembler params
 flye:
   mode: --nano-raw
@@ -31,7 +31,7 @@ minimap:
 
 # racon params (lathe setting)
 racon:
-  iter: 1
+  iter: 2
   m: 8
   x: 6
   g: 8
@@ -39,4 +39,4 @@ racon:
 
 # medaka params:
 medaka:
-  model: r941_min_fast_g507
+  m: r941_min_fast_g507
