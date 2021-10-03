@@ -1,0 +1,5 @@
+name: circlator
+channels:
+  - bioconda
+dependencies:
+  - circlator

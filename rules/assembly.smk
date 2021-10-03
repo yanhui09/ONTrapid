@@ -27,6 +27,7 @@ rule canu:
         fastq = rules.nanofilt.output,
     output:
         fasta = OUT_DIR + "/{sample}/canu/assembly.fasta"),
+        fastq_cor = OUT_DIR + "/{sample}/canu/assembly.trimmedReads.fasta.gz",
     message: "Assembly with canu"
     params:
 	p="assembly",
@@ -79,6 +80,24 @@ use rule quickmerge as quickmerge1 with:
     log: OUT_DIR + "/logs/quickmerge2/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/quickmerge2/{sample}.txt"
  
+# circularization with circlator
+# use polished assemblies and canu corrected|trimmed reads
+# circlize genome and use dnaA as start if possible
+rule circlator:
+    input:
+        fasta = rules.medaka_consensus.output.fasta,
+        fastq_cor = rules.canu.output.fastq_cor,
+    output:
+    message: "Circularization with circlator"
+    params:
+    conda: "../envs/circlator.yaml"
+    log: OUT_DIR + "/logs/circlator/{sample}.log"
+    benchmark: OUT_DIR + "/benchmarks/circlator/{sample}.txt"
+    threads: config["threads"]["large"]
+    shell:
+        "circlator all --merge_min_id 85 --merge_breaklen 1000 assembly.fasta reads output_directory"
+        "circlator all --assembler canu --data_type nanopore-corrected --bwa_opts "-x ont2d" --merge_min_id 85 --merge_breaklen 1000 polished_assembly.fa data.correctedReads.fasta.gz output"
+
 rule quast:
     input: OUT_DIR + "/{sample}/{f}/assembly.fasta"
     output: directory(OUT_DIR + "/{sample}/quast/{f}"),
@@ -89,7 +108,6 @@ rule quast:
     threads: config["threads"]["normal"]
     shell:
         "quast.py {input} -o {output} --threads {threads} > {log} 2>&1"
-
 
 # polish with racon and medaka
 # assuming quickmerge is better (flye > canu)
@@ -167,6 +185,4 @@ checkpoint medaka_consensus:
         "medaka_consensus -i {input.fastq}"
         " -d {input.fasta} -o {params._dir}"
         " -t {threads} -m {params.m} > {log} 2>&1"
-
-# circularization with circulator
 
