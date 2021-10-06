@@ -67,10 +67,10 @@ rule qc_stat:
     input:
         rules.post_qc.output,
     	fastq = rules.nanofilt.output,
-    output: OUT_DIR + "/{sample}/qc_stats.html",
+    output: OUT_DIR + "/{sample}/qc_stats.tsv",
     message: "QC statistics"
     conda: "../envs/nanoqc.yaml"
     log: OUT_DIR + "/logs/qc_stat/{sample}.log"
     benchmark: OUT_DIR +"/benchmarks/qc_stat/{sample}.txt"
     shell:
-    	"NanoStat --fastq {input.fastq} > {output} 2> {log}"
+    	"NanoStat --fastq {input.fastq} --tsv > {output} 2> {log}"
