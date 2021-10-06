@@ -30,7 +30,7 @@ rule init:
     output: OUT_DIR + "/init/{sample}.fastq"
     message: "Initialize input"
     log: OUT_DIR + "/logs/init/{sample}.log"
-    benchmark: OUT_DIR + "/bechmarks/init/{sample}.txt"
+    benchmark: OUT_DIR + "/benchmarks/init/{sample}.txt"
     shell:
         "zcat {input} > {output} 2> {log}"
 
