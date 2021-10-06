@@ -16,7 +16,7 @@ rule flye:
     threads: config["threads"]["large"]
     shell:
         """
-        flye {params.mode} {input} --out-dir {params._dir} \
+        flye {params.mode} {input.fastq} --out-dir {params._dir} \
         --threads {threads} > {log} 2>&1
         """
 
