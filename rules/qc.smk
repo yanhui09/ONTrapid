@@ -11,7 +11,7 @@ rule qc:
 rule porechop:
     input:
         rules.qc.output,
-        raw = OUT_DIR + "/init/{sample}.fastq",
+        raw = rules.init.output,
     output: OUT_DIR + "/{sample}/porechopped.fastq",
     message: "Trimming adapters with Porechop"
     conda: "../envs/porechop.yaml"
@@ -24,8 +24,14 @@ rule porechop:
         --threads {threads} > {log} 2>&1
         """
 
+def use_porchop(x):
+    if not x:
+        return rules.init.output
+    else:
+        return rules.porechop.output
+
 rule nanofilt:
-    input: rules.porechop.output
+    input: use_porchop(config["use_porchop"])
     output: OUT_DIR + "/{sample}/nanofilted.fastq",
     message: "Filter low-quality reads"
     params:

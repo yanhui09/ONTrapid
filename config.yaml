@@ -3,6 +3,7 @@ threads:
   normal: 6
   large: 6
 
+use_porchop: FALSE
 # nanofilt params
 nanofilt:
   l: 1000
