@@ -35,7 +35,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     sample_dt = get_samples(args.path)
-    sample_dt.to_csv(args.out + "/sample.tsv", sep="\t")
+    sample_dt.to_csv(args.out + "/samples.tsv", sep="\t")
 
 if __name__ == "__main__":
     main()

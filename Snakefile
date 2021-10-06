@@ -12,21 +12,18 @@ def load_sample_table(sample_table=WORK_DIR + "/samples.tsv"):
     return sampleTable
 
 sampleTable = load_sample_table()
-
 SAMPLES = sampleTable.index.values
-def get_fqs_dir(sample, header):
-    dirs = sampleTable.loc[sample, header]
-    return list(dirs)
 
 #---------------------------------
-rull all:
-     input: OUT_DIR + "/Finished"
+rule all:
+    input: 
+        expand(OUT_DIR + "/{sample}/Assembly.end", sample=SAMPLES)
 
 # intialize input     
 def get_input(wildcards):
-    fqs_dir = get_fqs_dir(wildcards.sample, "fq_dir")
-    return expand(fq_dir + "/{f}.fastq.gz", 
-    f = glob_wildcards(fq_dir + "/{f}.fastq").f)
+    fqs_dir = sampleTable.loc[wildcards.sample, 'fq_dir']
+    return expand(fqs_dir + "/{f}.fastq.gz", 
+    f = glob_wildcards(fqs_dir + "/{f}.fastq.gz").f)
 
 rule init:
     input: get_input

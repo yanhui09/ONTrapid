@@ -6,7 +6,7 @@ rule qc:
     log: OUT_DIR + "/logs/qc_raw/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/qc_raw/{sample}.txt"
     shell:
-	"nanoQC -o {output} {input} > {log} 2>&1"
+        "nanoQC -o {output} {input} > {log} 2>&1"
 
 rule porechop:
     input:
@@ -30,7 +30,7 @@ rule nanofilt:
     message: "Filter low-quality reads"
     params:
         l=config["nanofilt"]["l"],
-        q=config["nanofilt"]["q"]
+        q=config["nanofilt"]["q"],
         headcrop=config["nanofilt"]["headcrop"],
         tailcrop=config["nanofilt"]["tailcrop"],
     conda: "../envs/nanoqc.yaml"
@@ -46,11 +46,16 @@ rule nanofilt:
         """
 
 use rule qc as post_qc with:
-    input: rules.naofilt.output
-    output: directory(OUT_DIR + "/{sample}/qc_clean"),
-    message: "NanoQC for clean reads"
-    log: OUT_DIR + "/logs/qc_clean/{sample}.log"
-    benchmark: OUT_DIR + "/benchmarks/qc_clean/{sample}.txt"
+    input: 
+        rules.nanofilt.output
+    output: 
+        directory(OUT_DIR + "/{sample}/qc_clean"),
+    message: 
+        "NanoQC for clean reads"
+    log: 
+        OUT_DIR + "/logs/qc_clean/{sample}.log"
+    benchmark: 
+        OUT_DIR + "/benchmarks/qc_clean/{sample}.txt"
 
 rule qc_stat:
     input:
@@ -63,5 +68,3 @@ rule qc_stat:
     benchmark: OUT_DIR +"/benchmarks/qc_stat/{sample}.txt"
     shell:
     	"NanoStat --fastq {input.fastq} > {output} 2> {log}"
-
-include: "assembly.smk"

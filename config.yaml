@@ -8,7 +8,7 @@ nanofilt:
   l: 1000
   q: 10
   headcrop: 0
-  tialcrop: 0
+  tailcrop: 0
 # assembler params
 flye:
   mode: --nano-raw
@@ -25,6 +25,14 @@ quickmerge:
   c: 5
   hco: 10
 
+# circlator params
+circlator:
+  assembler: canu
+  data_type: nanopore-corrected
+  bwa_opts: '-x ont2d'
+  merge_min_id: 85
+  merge_breaklen: 1000
+
 # minimap params
 minimap:
   x: map-ont 
@@ -40,3 +48,4 @@ racon:
 # medaka params:
 medaka:
   m: r941_min_fast_g507
+
