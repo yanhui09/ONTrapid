@@ -4,11 +4,9 @@ rule flye:
         fastq = rules.nanofilt.output,
     output:
         fasta = OUT_DIR + "/{sample}/flye/assembly.fasta",
-        graph = expand(OUT_DIR + "/{{sample}}/flye/assembly_graph.{s}", s=["gfa","gv"]),
-        info = OUT_DIR + "/{sample}/flye/assembly_info.txt",
-    message: "Assembly with Flye"
+        _dir = directory(OUT_DIR + "/{sample}/flye"),
+    message: "Assembly with Flye [{wildcards.sample}]"
     params:
-        _dir=OUT_DIR + "/{sample}/flye",
         mode=config["flye"]["mode"],
     conda: "../envs/flye.yaml"
     log: OUT_DIR + "/logs/flye/{sample}.log"
@@ -16,7 +14,7 @@ rule flye:
     threads: config["threads"]["large"]
     shell:
         """
-        flye {params.mode} {input.fastq} --out-dir {params._dir} \
+        flye {params.mode} {input.fastq} --out-dir {output._dir} \
         --threads {threads} > {log} 2>&1
         """
 
@@ -28,10 +26,9 @@ rule canu:
     output:
         fasta = OUT_DIR + "/{sample}/canu/assembly.fasta",
         fastq_cor = OUT_DIR + "/{sample}/canu/assembly.trimmedReads.fasta.gz",
-    message: "Assembly with Canu"
+        _dir = directory(OUT_DIR + "/{sample}/canu"),
+    message: "Assembly with Canu [{wildcards.sample}]"
     params:
-        p="assembly",
-        d=OUT_DIR + "/{sample}/canu",
         size=config["canu"]["size"],
         usegrid=config["canu"]["usegrid"],
         grid_opts=config["canu"]["grid_opts"],
@@ -42,7 +39,7 @@ rule canu:
     threads: config["threads"]["large"]
     shell:
        """
-       canu -p {params.p} -d {params.d}/ -nanopore {input} \
+       canu -p assembly -d {output._dir}/ -nanopore {input} \
        genomeSize={params.size} {params.ex_args} \
        useGrid={params.usegrid} gridOptions={params.grid_opts} \
        > {log} 2>&1
@@ -57,7 +54,7 @@ rule quickmerge:
         ref = rules.canu.output.fasta,
     output: 
         fasta = OUT_DIR + "/{sample}/quickmerge1/assembly.fasta",
-    message: "Merge assemblies"
+    message: "Merge assemblies [{wildcards.sample}]"
     params: 
         ml=config["quickmerge"]["ml"],
         c=config["quickmerge"]["c"],
@@ -97,7 +94,7 @@ rule circlator:
         fastq_cor = rules.canu.output.fastq_cor,
     output:
         fasta = OUT_DIR + "/{sample}/circlator/assembly.fasta",
-    message: "Circularization with circlator"
+    message: "Circularization with circlator [{wildcards.sample}]"
     params:
         _dir=OUT_DIR + "/{sample}/circlator",
         assembler=config["circlator"]["assembler"],
@@ -122,7 +119,7 @@ rule circlator:
 rule quast:
     input: OUT_DIR + "/{sample}/{f}/assembly.fasta"
     output: directory(OUT_DIR + "/{sample}/quast/{f}"),
-    message: "Assembly stats with quast"
+    message: "{wildcards.f} assembly stats with quast [{wildcards.sample}]"
     conda: "../envs/quast.yaml"
     log: OUT_DIR + "/logs/quast/{f}/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/quast/{f}/{sample}.txt"
@@ -138,7 +135,7 @@ rule get_polish_input:
         f=["flye", "canu", "quickmerge1", "quickmerge2"]),
         fasta = rules.circlator.output.fasta,
     output: OUT_DIR + "/{sample}/polish/raw.fasta"
-    message: "In preparation for polishing"
+    message: "In preparation for polishing [{wildcards.sample}]"
     shell: "cp {input.fasta} {output}"
 
 # align merged assemblies with raw reads
@@ -148,7 +145,7 @@ rule minimap:
       ref = OUT_DIR + "/{sample}/polish/{f}.fasta",
       fastq = rules.nanofilt.output,
     output: OUT_DIR + "/{sample}/polish/{f}.paf"
-    message: "Alignments against merged assemblies"
+    message: "Alignments against {wildcards.f} assembly [{wildcards.sample}]"
     params:
         x=config["minimap"]["x"]
     conda: "../envs/polish.yaml"
@@ -173,7 +170,7 @@ rule racon:
         rules.nanofilt.output,
         get_racon_input,
     output: OUT_DIR + "/{sample}/polish/racon_{iter}.fasta"
-    message: "Polish with racon, round={wildcards.iter}"
+    message: "Polish with racon, round={wildcards.iter} [{wildcards.sample}]"
     params:
         m=config["racon"]["m"],
         x=config["racon"]["x"],
@@ -196,7 +193,7 @@ checkpoint medaka_consensus:
     output: 
         fasta = OUT_DIR + "/{sample}/polish/medaka/consensus.fasta",
         tag = OUT_DIR + "/{sample}/Assembly.end",
-    message: "Generate consensus with medaka"
+    message: "Generate consensus with medaka [{wildcards.sample}]"
     params:
         m=config["medaka"]["m"],
         _dir=OUT_DIR + "/{sample}/polish/medaka",

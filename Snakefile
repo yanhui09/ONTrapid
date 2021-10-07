@@ -28,7 +28,7 @@ def get_input(wildcards):
 rule init:
     input: get_input
     output: OUT_DIR + "/init/{sample}.fastq"
-    message: "Initialize input"
+    message: "Initialize input [{wildcards.sample}]"
     log: OUT_DIR + "/logs/init/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/init/{sample}.txt"
     shell:

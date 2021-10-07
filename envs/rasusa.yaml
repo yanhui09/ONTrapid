@@ -1,0 +1,5 @@
+name: rasusa
+channels:
+  - bioconda
+dependencies:
+  - rasusa
