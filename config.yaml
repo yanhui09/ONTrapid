@@ -16,6 +16,11 @@ nanofilt:
   q: 10
   headcrop: 0
   tailcrop: 0
+
+assembler_opts: --default # --default, --only-canu, --only-flye
+# by default, canu and flye assemblies will be merged
+# For single assembler i.e., canu and flye, # only polishment is applied.
+# Skip quickmerge and circulator
 # assembler params
 flye:
   mode: --nano-raw
@@ -26,8 +31,13 @@ canu:
   grid_opts: ''
   ex_args: 'cnsThreads=2 cnsMemory=32'
 
+
 # quickmerge params (conseverative merge of lathe)
 quickmerge:
+  # choose assembly as query and ref for quickmerge
+  ref_opts: flye # flye, canu
+  # flye: flye assembly as query, canu as ref
+  # canu: vice versa 
   ml: 10000
   c: 5
   hco: 10

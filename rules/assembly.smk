@@ -127,13 +127,23 @@ rule quast:
     shell:
         "quast.py {input} -o {output} --threads {threads} > {log} 2>&1"
 
+def fasta_to_polish(x):
+    if x == '--only-canu':
+        return (rules.canu.output.fasta, ["canu_out"])
+    elif x == "--only-flye":
+        return (rules.flye.output.fasta, ["flye_out"])
+    elif x == "--default":
+        return (rules.circlator.output.fasta, ["flye_out", "canu_out", "quickmerge1_out", "quickmerge2_out"])
+    else:
+        raise Exception('Assembler-opts only allows --only-canu, --only-flye, --default.\n{} is used in the config file'.format(x))
+
 # polish with racon and medaka
 # assuming quickmerge is better (flye > canu)
 rule get_polish_input:
     input: 
         expand(OUT_DIR + "/{{sample}}/quast/{f}", 
-        f=["flye_out", "canu_out", "quickmerge1_out", "quickmerge2_out"]),
-        fasta = rules.circlator.output.fasta,
+        f=fasta_to_polish(config["assembler_opts"])[1]),
+        fasta = fasta_to_polish(config["assembler_opts"])[0],
     output: OUT_DIR + "/{sample}/polish/raw.fasta"
     message: "In preparation for polishing [{wildcards.sample}]"
     shell: "cp {input.fasta} {output}"

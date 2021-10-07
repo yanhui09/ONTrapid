@@ -15,10 +15,12 @@ rule rasusa:
 
 # decide subsampling first
 def get_qc_input(x):
-    if x:
+    if x is True:
         return rules.rasusa.output
-    else:
+    elif x is False:
         return rules.init.output
+    else:
+        raise Exception('Subsampling only allows bool type [TRUE/FALSE].\n{} is used in the config file'.format(x))
 
 SUBS = config["rasusa"]["subsampling"]
 
@@ -49,14 +51,16 @@ rule porechop:
         """
 
 def use_porchop(x, y):
-    if not x:
-        if not y:
+    if y is True:
+        return rules.porechop.output
+    elif y is False:
+        if x is False:
             return rules.init.output
-        else:
-            return rules.porechop.output
+        else: # exception will be first raised at get_qc_input()
+            return rules.rasusa.output
     else:
-        return rules.rasusa.output
-
+        raise Exception('Use_porechop only allows bool type [TRUE/FALSE].\n{} is used in the config file'.format(x))
+        
 rule nanofilt:
     input: use_porchop(SUBS, config["use_porchop"])
     output: OUT_DIR + "/{sample}/nanofilted.fastq",
