@@ -41,10 +41,13 @@ rule canu:
     benchmark: OUT_DIR + "/benchmarks/canu/{sample}.txt"
     threads: config["threads"]["large"]
     shell:
-       "canu -p {params.p} -d {params.d}/ -nanopore-raw {input}"
-       " genomeSize={params.size} {params.ex_args}"
-       " useGrid={params.usegrid} gridOptions={params.grid_opts}"
-       " > {log} 2>&1"
+       """
+       canu -p {params.p} -d {params.d}/ -nanopore {input} \
+       genomeSize={params.size} {params.ex_args} \
+       useGrid={params.usegrid} gridOptions={params.grid_opts} \
+       > {log} 2>&1
+       mv {params.d}/assembly.contigs.fasta {output.fasta}
+       """
 
 # consensus from multiple contig sets, two-round quickmerge
 # To do: include options for hybrid-assembly

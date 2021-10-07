@@ -15,7 +15,7 @@ flye:
   mode: --nano-raw
 
 canu:
-  size: 20m # estimated genomesize
+  size: 5m # estimated genomesize
   usegrid: False
   grid_opts: ''
   ex_args: 'cnsThreads=2 cnsMemory=32'
