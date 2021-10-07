@@ -12,7 +12,7 @@ rasusa:
 use_porchop: TRUE
 # nanofilt params
 nanofilt:
-  l: 1000
+  l: 500
   q: 10
   headcrop: 0
   tailcrop: 0

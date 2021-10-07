@@ -11,7 +11,7 @@ rule rasusa:
     shell:
         "rasusa --input {input} --coverage {params.coverage}"
         " --genome-size {params.genome_size} > {output}"
-        " 2 > {log}"
+        " 2> {log}"
 
 # decide subsampling first
 def get_qc_input(x):
