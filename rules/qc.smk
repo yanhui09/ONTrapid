@@ -1,23 +1,31 @@
-# decide subsampling first
 rule rasusa:
-    input: OUT_DIR + "/init/{sample}.fastq",
-    output: OUT_DIR + "/{sample}/subsampled.fastq", 
-    message: "Subsampling at estimated depth of {params.coverage}X [{wildcards.sample}]"
+    input: rules.init.output,
+    output: OUT_DIR + "/{sample}/subsampled_%sx.fastq" % config["rasusa"]["coverage"], 
+    message: "Subsampling at estimated depth {params.coverage}x [{wildcards.sample}]"
     params:
         coverage=config["rasusa"]["coverage"],
         genome_size=config["rasusa"]["genome_size"],
     conda: "../envs/rasusa.yaml"
     log: OUT_DIR + "/logs/rasusa/{sample}.log"
-    benchmark: OUT_DIR + "/benchmarks/rasusa/{sample}.log"
+    benchmark: OUT_DIR + "/benchmarks/rasusa/{sample}.txt"
     shell:
         "rasusa --input {input} --coverage {params.coverage}"
         " --genome-size {params.genome_size} > {output}"
         " 2 > {log}"
 
+# decide subsampling first
+def get_qc_input(x):
+    if x:
+        return rules.rasusa.output
+    else:
+        return rules.init.output
+
+SUBS = config["rasusa"]["subsampling"]
+
 rule qc:
-    input: OUT_DIR + "/init/{sample}.fastq",
+    input: get_qc_input(SUBS)
     output: directory(OUT_DIR + "/{sample}/qc_raw"),
-    message: "{wildcards.sample}: NanoQC for raw fastq"
+    message: "NanoQC for raw fastq [{wildcards.sample}]"
     conda: "../envs/nanoqc.yaml"
     log: OUT_DIR + "/logs/qc_raw/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/qc_raw/{sample}.txt"
@@ -27,7 +35,7 @@ rule qc:
 rule porechop:
     input:
         rules.qc.output,
-        raw = rules.init.output,
+        raw = get_qc_input(SUBS),
     output: OUT_DIR + "/{sample}/porechopped.fastq",
     message: "Trimming adapters with Porechop [{wildcards.sample}]"
     conda: "../envs/porechop.yaml"
@@ -40,14 +48,17 @@ rule porechop:
         --threads {threads} > {log} 2>&1
         """
 
-def use_porchop(x):
+def use_porchop(x, y):
     if not x:
-        return rules.init.output
+        if not y:
+            return rules.init.output
+        else:
+            return rules.porechop.output
     else:
-        return rules.porechop.output
+        return rules.rasusa.output
 
 rule nanofilt:
-    input: use_porchop(config["use_porchop"])
+    input: use_porchop(SUBS, config["use_porchop"])
     output: OUT_DIR + "/{sample}/nanofilted.fastq",
     message: "Filter low-quality reads [{wildcards.sample}]"
     params:

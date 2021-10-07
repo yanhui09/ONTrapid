@@ -4,7 +4,7 @@ rule flye:
         fastq = rules.nanofilt.output,
     output:
         fasta = OUT_DIR + "/{sample}/flye/assembly.fasta",
-        _dir = directory(OUT_DIR + "/{sample}/flye"),
+        _dir = directory(OUT_DIR + "/{sample}/flye"), # clean dir if failed
     message: "Assembly with Flye [{wildcards.sample}]"
     params:
         mode=config["flye"]["mode"],
@@ -26,7 +26,7 @@ rule canu:
     output:
         fasta = OUT_DIR + "/{sample}/canu/assembly.fasta",
         fastq_cor = OUT_DIR + "/{sample}/canu/assembly.trimmedReads.fasta.gz",
-        _dir = directory(OUT_DIR + "/{sample}/canu"),
+        _dir = directory(OUT_DIR + "/{sample}/canu"), # clean dir if failed
     message: "Assembly with Canu [{wildcards.sample}]"
     params:
         size=config["canu"]["size"],
@@ -43,7 +43,7 @@ rule canu:
        genomeSize={params.size} {params.ex_args} \
        useGrid={params.usegrid} gridOptions={params.grid_opts} \
        > {log} 2>&1
-       mv {params.d}/assembly.contigs.fasta {output.fasta}
+       mv {output._dir}/assembly.contigs.fasta {output.fasta}
        """
 
 # consensus from multiple contig sets, two-round quickmerge
@@ -118,7 +118,7 @@ rule circlator:
 
 rule quast:
     input: OUT_DIR + "/{sample}/{f}/assembly.fasta"
-    output: directory(OUT_DIR + "/{sample}/quast/{f}"),
+    output: directory(OUT_DIR + "/{sample}/quast/{f}_out"), # avoid ambugious rules with assembly
     message: "{wildcards.f} assembly stats with quast [{wildcards.sample}]"
     conda: "../envs/quast.yaml"
     log: OUT_DIR + "/logs/quast/{f}/{sample}.log"
@@ -132,7 +132,7 @@ rule quast:
 rule get_polish_input:
     input: 
         expand(OUT_DIR + "/{{sample}}/quast/{f}", 
-        f=["flye", "canu", "quickmerge1", "quickmerge2"]),
+        f=["flye_out", "canu_out", "quickmerge1_out", "quickmerge2_out"]),
         fasta = rules.circlator.output.fasta,
     output: OUT_DIR + "/{sample}/polish/raw.fasta"
     message: "In preparation for polishing [{wildcards.sample}]"
