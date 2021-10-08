@@ -120,7 +120,7 @@ rule circlator:
         --merge_breaklen {params.merge_breaklen} --threads {threads} \
         {input.fasta} {input.fastq_cor} {output._dir}.tmp > {log} 2>&1
         mv {output._dir}.tmp {output._dir}
-        cp {output._dir}/06.fixstart.outprefix.fasta {output.fasta}
+        cp {output._dir}/06.fixstart.fasta {output.fasta}
         """
 
 rule quast:
