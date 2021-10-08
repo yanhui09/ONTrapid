@@ -1,8 +1,8 @@
 name: circlator
 channels:
   - bioconda
+  - anaconda
 dependencies:
   - circlator
-  - canu
-  - spades
+  - canu=1.6
   - setuptools

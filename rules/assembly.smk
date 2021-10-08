@@ -98,9 +98,9 @@ rule circlator:
         fastq_cor = rules.canu.output.fastq_cor,
     output:
         fasta = OUT_DIR + "/{sample}/circlator/assembly.fasta",
+        _dir = directory(OUT_DIR + "/{sample}/circlator"),
     message: "Circularization with circlator [{wildcards.sample}]"
     params:
-        _dir=OUT_DIR + "/{sample}/circlator",
         assembler=config["circlator"]["assembler"],
         data_type=config["circlator"]["data_type"],
         bwa_opts=config["circlator"]["bwa_opts"],
@@ -111,13 +111,16 @@ rule circlator:
     benchmark: OUT_DIR + "/benchmarks/circlator/{sample}.txt"
     threads: config["threads"]["large"]
     shell:
+        # snakemake directory conflicts with os.mkdir() in circlator? existed already?
+        # use .tmp to differentiate;
         """
         circlator all \
         --assembler {params.assembler} --data_type {params.data_type} \
         --bwa_opts {params.bwa_opts} --merge_min_id {params.merge_min_id} \
-        --merge_breaklen {params.merge_breaklen} \
-        {input.fasta} {input.fastq_cor} {params._dir} > {log} 2>&1
-        cp {params._dir}/06.fixstart.outprefix.fasta {output.fasta} > {log} 2 >&1
+        --merge_breaklen {params.merge_breaklen} --threads {threads} \
+        {input.fasta} {input.fastq_cor} {output._dir}.tmp > {log} 2>&1
+        mv {output._dir}.tmp {output._dir}
+        cp {output._dir}/06.fixstart.outprefix.fasta {output.fasta}
         """
 
 rule quast:
@@ -137,7 +140,7 @@ def fasta_to_polish(x):
     elif x == "--only-flye":
         return (rules.flye.output.fasta, ["flye_out"])
     elif x == "--default":
-        return (rules.circlator.output.fasta, ["flye_out", "canu_out", "quickmerge1_out", "quickmerge2_out"])
+        return (rules.circlator.output.fasta, ["flye_out", "canu_out", "quickmerge1_out", "quickmerge2_out", "circlator_out"])
     else:
         raise Exception('Assembler-opts only allows --only-canu, --only-flye, --default.\n{} is used in the config file'.format(x))
 
