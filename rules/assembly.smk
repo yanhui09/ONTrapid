@@ -54,20 +54,24 @@ rule quickmerge:
         ref = rules.canu.output.fasta,
     output: 
         fasta = OUT_DIR + "/{sample}/quickmerge1/assembly.fasta",
+        _dir = directory(OUT_DIR + "/{sample}/quickmerge1"), 
     message: "Merge assemblies [{wildcards.sample}]"
-    params: 
+    params:
         ml=config["quickmerge"]["ml"],
         c=config["quickmerge"]["c"],
         hco=config["quickmerge"]["hco"],
-        p=OUT_DIR + "/{sample}/quickmerge1/assembly",
     conda: "../envs/quickmerge.yaml"
     log: OUT_DIR + "/logs/quickmerge1/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/quickmerge1/{sample}.txt"
     shell:
-        "merge_wrapper.py {input.query} {input.ref}"
-        " -ml {params.ml} -c {params.c}"
-        " -hco {params.hco} -p {params.p}"
-        " > {log} 2>&1"
+        # can't use absolute path in --prefix 
+        """
+        mkdir -p {output._dir}; cd {output._dir}
+        merge_wrapper.py {input.query} {input.ref} \
+        -ml {params.ml} -c {params.c} \
+        -hco {params.hco} > {log} 2>&1
+        mv merged_out.fasta {output.fasta}; cd - > {log} 2>&1
+        """
 
 use rule quickmerge as quickmerge1 with:
     input:
@@ -75,11 +79,11 @@ use rule quickmerge as quickmerge1 with:
         ref = rules.flye.output.fasta,
     output: 
         fasta = OUT_DIR + "/{sample}/quickmerge2/assembly.fasta",
+        _dir = directory(OUT_DIR + "/{sample}/quickmerge2"), 
     params: # issues in snakemake, include all if changed
         ml=config["quickmerge"]["ml"],
         c=config["quickmerge"]["c"],
         hco=config["quickmerge"]["hco"],
-        p=OUT_DIR + "/{sample}/quickmerge2/assembly",
     log: 
         OUT_DIR + "/logs/quickmerge2/{sample}.log"
     benchmark: 
@@ -112,7 +116,7 @@ rule circlator:
         --assembler {params.assembler} --data_type {params.data_type} \
         --bwa_opts {params.bwa_opts} --merge_min_id {params.merge_min_id} \
         --merge_breaklen {params.merge_breaklen} \
-        {input.fasta} {input.fastq_cor} {params._dir} > {log} 2 >&1
+        {input.fasta} {input.fastq_cor} {params._dir} > {log} 2>&1
         cp {params._dir}/06.fixstart.outprefix.fasta {output.fasta} > {log} 2 >&1
         """
 

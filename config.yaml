@@ -46,7 +46,7 @@ quickmerge:
 circlator:
   assembler: canu
   data_type: nanopore-corrected
-  bwa_opts: '-x ont2d'
+  bwa_opts: "'-x ont2d'" # escape single quotes
   merge_min_id: 85
   merge_breaklen: 1000
 
