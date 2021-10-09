@@ -58,8 +58,8 @@ minimap:
 racon:
   iter: 2
   m: 8
-  x: 6
-  g: 8
+  x: -6
+  g: -8
   w: 500
 
 # medaka params:

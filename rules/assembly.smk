@@ -200,7 +200,7 @@ rule racon:
     shell:
         "racon -m {params.m} -x {params.x}"
         " -g {params.g} -w {params.w} -t {threads}"
-        " {input} > {output} 2>{log}"
+        " {input} > {output} 2> {log}"
 
 checkpoint medaka_consensus:
     input:
