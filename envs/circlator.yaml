@@ -1,7 +1,6 @@
 name: circlator
 channels:
   - bioconda
-  - anaconda
 dependencies:
   - circlator
   - canu=1.6

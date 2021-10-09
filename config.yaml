@@ -54,7 +54,7 @@ circlator:
 minimap:
   x: map-ont 
 
-# racon params (lathe setting)
+# racon params (recommended by medaka)
 racon:
   iter: 2
   m: 8
@@ -66,3 +66,9 @@ racon:
 medaka:
   m: r941_min_fast_g507
 
+# assembly qc
+assembly_qc: busco # busco, quast, both
+busco:
+  l: bacteria_odb10
+  m: genome
+  opts: ''

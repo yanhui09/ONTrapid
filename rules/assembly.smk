@@ -70,7 +70,7 @@ rule quickmerge:
         merge_wrapper.py {input.query} {input.ref} \
         -ml {params.ml} -c {params.c} \
         -hco {params.hco} > {log} 2>&1
-        mv merged_out.fasta {output.fasta}; cd - > {log} 2>&1
+        mv merged_out.fasta {output.fasta}; cd - >> {log} 2>&1
         """
 
 use rule quickmerge as quickmerge1 with:
@@ -126,7 +126,7 @@ rule circlator:
 rule quast:
     input: OUT_DIR + "/{sample}/{f}/assembly.fasta"
     output: directory(OUT_DIR + "/{sample}/quast/{f}_out"), # avoid ambugious rules with assembly
-    message: "{wildcards.f} assembly stats with quast [{wildcards.sample}]"
+    message: "{wildcards.f} assembly stats by QUAST [{wildcards.sample}]"
     conda: "../envs/quast.yaml"
     log: OUT_DIR + "/logs/quast/{f}/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/quast/{f}/{sample}.txt"
@@ -134,22 +134,61 @@ rule quast:
     shell:
         "quast.py {input} -o {output} --threads {threads} > {log} 2>&1"
 
+# BUSCO assessment
+rule busco:
+    input: OUT_DIR + "/{sample}/{f}/assembly.fasta"
+    output: directory(OUT_DIR + "/{sample}/busco/{f}_out"), # avoid ambugious rules with assembly
+    message: "{wildcards.f} assembly stats by BUSCO [{wildcards.sample}]"
+    params:
+        o="{f}_out",
+        out_path=OUT_DIR + "/{sample}/busco",
+        l=config["busco"]["l"],
+        m=config["busco"]["m"],
+        opts=config["busco"]['opts'],
+    conda: "../envs/busco.yaml"
+    log: OUT_DIR + "/logs/busco/{f}/{sample}.log"
+    benchmark: OUT_DIR + "/benchmarks/busco/{f}/{sample}.txt"
+    threads: config["threads"]["normal"]
+    shell:
+        # cd busco_dir for downloads
+        """
+        cd {params.out_path};
+        busco -i {input} -o {params.o} --out_path {params.out_path} \
+        -l {params.l} -m {params.m} {params.opts} -c {threads} \
+        > {log} 2>&1;
+        cd - >> {log} 2>&1
+        """
+
 def fasta_to_polish(x):
     if x == '--only-canu':
         return (rules.canu.output.fasta, ["canu_out"])
-    elif x == "--only-flye":
+    elif x == '--only-flye':
         return (rules.flye.output.fasta, ["flye_out"])
-    elif x == "--default":
-        return (rules.circlator.output.fasta, ["flye_out", "canu_out", "quickmerge1_out", "quickmerge2_out", "circlator_out"])
+    elif x == '--default':
+        return (rules.circlator.output.fasta, ["flye_out", "canu_out", "quickmerge1_out", "quickmerge2_out", "circlator_out", "polish_out"])
     else:
         raise Exception('Assembler-opts only allows --only-canu, --only-flye, --default.\n{} is used in the config file'.format(x))
 
+def choose_assembly_qc(x,y):
+    if y == 'busco':
+        return expand(OUT_DIR + "/{{sample}}/busco/{f}", 
+        f=fasta_to_polish(x)[1])
+    elif y == 'quast':
+        return expand(OUT_DIR + "/{{sample}}/quast/{f}", 
+        f=fasta_to_polish(x)[1])
+    elif y == 'both':
+        return expand(OUT_DIR + "/{{sample}}/{qc}/{f}", 
+        f=fasta_to_polish(x)[1], qc=("busco", "quast"))
+    else:
+        raise Exception('Assembly_qc only allows busco, quast, both.\n{} is used in the config file'.format(y))
+    
 # polish with racon and medaka
 # assuming quickmerge is better (flye > canu)
 rule get_polish_input:
     input: 
-        expand(OUT_DIR + "/{{sample}}/quast/{f}", 
-        f=fasta_to_polish(config["assembler_opts"])[1]),
+        choose_assembly_qc(config["assembler_opts"], config["assembly_qc"]),
+        #expand(OUT_DIR + "/{{sample}}/busco/{f}", 
+        #f=fasta_to_polish(config["assembler_opts"])[1]),
         fasta = fasta_to_polish(config["assembler_opts"])[0],
     output: OUT_DIR + "/{sample}/polish/raw.fasta"
     message: "In preparation for polishing [{wildcards.sample}]"
@@ -208,12 +247,12 @@ checkpoint medaka_consensus:
         iter = config["racon"]["iter"]),
         fastq = rules.nanofilt.output,
     output: 
-        fasta = OUT_DIR + "/{sample}/polish/medaka/consensus.fasta",
+        fasta = OUT_DIR + "/{sample}/polish/assembly.fasta",
         tag = OUT_DIR + "/{sample}/Assembly.end",
     message: "Generate consensus with medaka [{wildcards.sample}]"
     params:
         m=config["medaka"]["m"],
-        _dir=OUT_DIR + "/{sample}/polish/medaka",
+        _dir=OUT_DIR + "/{sample}/polish",
     conda: "../envs/polish.yaml"
     log: OUT_DIR + "/logs/polish/medaka/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/polish/medaka/{sample}.txt"
@@ -221,7 +260,8 @@ checkpoint medaka_consensus:
     shell:
         """
         medaka_consensus -i {input.fastq} \
-        -d {input.fasta} -o {params._dir} \
-        -t {threads} -m {params.m} > {log} 2>&1
+        -d {input.fasta} -o {params._dir}/medaka \
+        -t {threads} -m {params.m} > {log} 2>&1;
+        cp {params._dir}/medaka/consensus.fasta {output.fasta};
         touch {output.tag}
         """
