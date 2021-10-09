@@ -119,8 +119,8 @@ rule circlator:
         --bwa_opts {params.bwa_opts} --merge_min_id {params.merge_min_id} \
         --merge_breaklen {params.merge_breaklen} --threads {threads} \
         {input.fasta} {input.fastq_cor} {output._dir}.tmp > {log} 2>&1
+        cp {output._dir}.tmp/06.fixstart.fasta {output.fasta}
         mv {output._dir}.tmp {output._dir}
-        cp {output._dir}/06.fixstart.fasta {output.fasta}
         """
 
 rule quast:
