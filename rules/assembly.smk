@@ -165,30 +165,14 @@ def fasta_to_polish(x):
     elif x == '--only-flye':
         return (rules.flye.output.fasta, ["flye_out"])
     elif x == '--default':
-        return (rules.circlator.output.fasta, ["flye_out", "canu_out", "quickmerge1_out", "quickmerge2_out", "circlator_out", "polish_out"])
+        return (rules.circlator.output.fasta, ["flye_out", "canu_out", "quickmerge1_out", "quickmerge2_out", "circlator_out"])
     else:
         raise Exception('Assembler-opts only allows --only-canu, --only-flye, --default.\n{} is used in the config file'.format(x))
 
-def choose_assembly_qc(x,y):
-    if y == 'busco':
-        return expand(OUT_DIR + "/{{sample}}/busco/{f}", 
-        f=fasta_to_polish(x)[1])
-    elif y == 'quast':
-        return expand(OUT_DIR + "/{{sample}}/quast/{f}", 
-        f=fasta_to_polish(x)[1])
-    elif y == 'both':
-        return expand(OUT_DIR + "/{{sample}}/{qc}/{f}", 
-        f=fasta_to_polish(x)[1], qc=("busco", "quast"))
-    else:
-        raise Exception('Assembly_qc only allows busco, quast, both.\n{} is used in the config file'.format(y))
-    
 # polish with racon and medaka
 # assuming quickmerge is better (flye > canu)
 rule get_polish_input:
     input: 
-        choose_assembly_qc(config["assembler_opts"], config["assembly_qc"]),
-        #expand(OUT_DIR + "/{{sample}}/busco/{f}", 
-        #f=fasta_to_polish(config["assembler_opts"])[1]),
         fasta = fasta_to_polish(config["assembler_opts"])[0],
     output: OUT_DIR + "/{sample}/polish/raw.fasta"
     message: "In preparation for polishing [{wildcards.sample}]"
@@ -241,8 +225,22 @@ rule racon:
         " -g {params.g} -w {params.w} -t {threads}"
         " {input} > {output} 2> {log}"
 
+def choose_assembly_qc(x,y):
+    if y == 'busco':
+        return expand(OUT_DIR + "/{{sample}}/busco/{f}", 
+        f=fasta_to_polish(x)[1])
+    elif y == 'quast':
+        return expand(OUT_DIR + "/{{sample}}/quast/{f}", 
+        f=fasta_to_polish(x)[1])
+    elif y == 'both':
+        return expand(OUT_DIR + "/{{sample}}/{qc}/{f}", 
+        f=fasta_to_polish(x)[1], qc=("busco", "quast"))
+    else:
+        raise Exception('Assembly_qc only allows busco, quast, both.\n{} is used in the config file'.format(y))
+ 
 checkpoint medaka_consensus:
     input:
+        choose_assembly_qc(config["assembler_opts"], config["assembly_qc"]),
         fasta = expand(OUT_DIR + "/{{sample}}/polish/racon_{iter}.fasta", 
         iter = config["racon"]["iter"]),
         fastq = rules.nanofilt.output,
