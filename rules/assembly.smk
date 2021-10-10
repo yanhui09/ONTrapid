@@ -58,8 +58,8 @@ rule canu:
 # To do: include options for hybrid-assembly
 rule quickmerge:
     input:
-        query = rules.flye.output.fasta,
-        ref = rules.canu.output.fasta,
+        query = OUT_DIR + "/{sample}/flye2polish/assembly.fasta",
+        ref = OUT_DIR + "/{sample}/canu2polish/assembly.fasta",
     output: 
         fasta = OUT_DIR + "/{sample}/quickmerge1/assembly.fasta",
         _dir = directory(OUT_DIR + "/{sample}/quickmerge1"), 
@@ -83,8 +83,8 @@ rule quickmerge:
 
 use rule quickmerge as quickmerge1 with:
     input:
-        query = rules.canu.output.fasta,
-        ref = rules.flye.output.fasta,
+        query = OUT_DIR + "/{sample}/canu2polish/assembly.fasta",
+        ref = OUT_DIR + "/{sample}/flye2polish/assembly.fasta",
     output: 
         fasta = OUT_DIR + "/{sample}/quickmerge2/assembly.fasta",
         _dir = directory(OUT_DIR + "/{sample}/quickmerge2"), 
