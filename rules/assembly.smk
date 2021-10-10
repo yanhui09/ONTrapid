@@ -173,7 +173,7 @@ def fasta_to_polish(x):
     elif x == '--only-flye':
         return (rules.flye.output.fasta, ["flye_out", "polish_out"])
     elif x == '--default':
-        return (rules.circlator.output.fasta, ["flye_out", "canu_out", "quickmerge1_out", "quickmerge2_out", "circlator_out"])
+        return (rules.circlator.output.fasta, ["flye_out", "canu_out", "quickmerge1_out", "quickmerge2_out", "circlator_out", "polish_out"])
     else:
         raise Exception('Assembler-opts only allows --only-canu, --only-flye, --default.\n{} is used in the config file'.format(x))
 
@@ -233,28 +233,14 @@ rule racon:
         " -g {params.g} -w {params.w} -t {threads}"
         " {input} > {output} 2> {log}"
 
-def choose_assembly_qc(x,y):
-    if y == 'busco':
-        return expand(OUT_DIR + "/{{sample}}/busco/{f}", 
-        f=fasta_to_polish(x)[1])
-    elif y == 'quast':
-        return expand(OUT_DIR + "/{{sample}}/quast/{f}", 
-        f=fasta_to_polish(x)[1])
-    elif y == 'both':
-        return expand(OUT_DIR + "/{{sample}}/{qc}/{f}", 
-        f=fasta_to_polish(x)[1], qc=("busco", "quast"))
-    else:
-        raise Exception('Assembly_qc only allows busco, quast, both.\n{} is used in the config file'.format(y))
- 
+
 checkpoint medaka_consensus:
     input:
-        choose_assembly_qc(config["assembler_opts"], config["assembly_qc"]),
         fasta = expand(OUT_DIR + "/{{sample}}/polish/racon_{iter}.fasta", 
         iter = config["racon"]["iter"]),
         fastq = rules.nanofilt.output,
     output: 
         fasta = OUT_DIR + "/{sample}/polish/assembly.fasta",
-        tag = OUT_DIR + "/{sample}/Assembly.end",
     message: "Generate consensus with medaka [{wildcards.sample}]"
     params:
         m=config["medaka"]["m"],
@@ -268,6 +254,26 @@ checkpoint medaka_consensus:
         medaka_consensus -i {input.fastq} \
         -d {input.fasta} -o {params._dir}/medaka \
         -t {threads} -m {params.m} > {log} 2>&1;
-        cp {params._dir}/medaka/consensus.fasta {output.fasta};
-        touch {output.tag}
+        cp {params._dir}/medaka/consensus.fasta {output.fasta}
         """
+
+# assembly QC for possible assemblies (polish_out after medaka_consensus)
+def choose_assembly_qc(x,y):
+    if y == 'busco':
+        return expand(OUT_DIR + "/{{sample}}/busco/{f}", 
+        f=fasta_to_polish(x)[1])
+    elif y == 'quast':
+        return expand(OUT_DIR + "/{{sample}}/quast/{f}", 
+        f=fasta_to_polish(x)[1])
+    elif y == 'both':
+        return expand(OUT_DIR + "/{{sample}}/{qc}/{f}", 
+        f=fasta_to_polish(x)[1], qc=("busco", "quast"))
+    else:
+        raise Exception('Assembly_qc only allows busco, quast, both.\n{} is used in the config file'.format(y))
+ 
+rule assembly_qc:
+    input:
+        choose_assembly_qc(config["assembler_opts"], config["assembly_qc"]),
+    output: OUT_DIR + "/{sample}/Assembly.end"
+    message: "Assembly Finished [wildcards.sample]"
+    shell: "touch {output}"
