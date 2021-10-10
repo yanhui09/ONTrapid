@@ -248,10 +248,10 @@ def choose_assembly(x):
     if x == 'canu' or x == 'flye':
         return x+'_out', x+'2polish_out'
     elif x == 'default':
-        out = ("flye", "canu", "quickmerge1", "quickmerge2")
+        out = ("flye", "canu", "quickmerge1", "quickmerge2", "circlator")
         out1 = [x + "_out" for x in out]
         out2 = [x + "2polish_out" for x in out]
-        return  out1 + out2 + ["circlator_out"]
+        return  out1 + out2
     else:
         raise Exception('Assembler-opts only allows --only-canu, --only-flye, --default.\n{} is used in the config file'.format(x))
 
