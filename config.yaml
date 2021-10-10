@@ -41,7 +41,9 @@ canu:
 # quickmerge params (conseverative merge of lathe)
 quickmerge:
   # choose assembly as query and ref for quickmerge
-  ref_opts: flye # flye, canu
+  # flye canu
+  query: flye
+  ref: canu
   # flye: flye assembly as query, canu as ref
   # canu: vice versa 
   ml: 10000

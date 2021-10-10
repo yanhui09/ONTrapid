@@ -195,7 +195,7 @@ checkpoint medaka_consensus:
     message: "Generate consensus for {wildcards.f} assemblies with medaka [{wildcards.sample}]"
     params:
         m=config["medaka"]["m"],
-        _dir=OUT_DIR + "/{sample}/polish",
+        _dir=OUT_DIR + "/{sample}/{f}2polish",
     conda: "../envs/polish.yaml"
     log: OUT_DIR + "/logs/polish/medaka/{sample}/{f}.log"
     benchmark: OUT_DIR + "/benchmarks/polish/medaka/{sample}/{f}.txt"
