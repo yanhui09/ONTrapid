@@ -3,6 +3,10 @@ threads:
   normal: 6
   large: 6
 
+memory:
+  normal_gb: 4 
+  large_gb: 50
+
 # rasusa params (subsampling for speed)
 rasusa:
   subsampling: TRUE

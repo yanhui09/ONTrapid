@@ -39,11 +39,14 @@ rule canu:
     log: OUT_DIR + "/logs/canu/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/canu/{sample}.txt"
     threads: config["threads"]["large"]
+    resources: 
+      mem=config["memory"]["large_gb"],
     shell:
        """
        canu -p assembly -d {output._dir}/ -nanopore {input} \
        genomeSize={params.size} {params.ex_args} \
        minThreads={threads} maxThreads={threads} \
+       maxMemory={resources.mem} \
        useGrid={params.usegrid} gridOptions={params.grid_opts} \
        stopOnLowCoverage={params.stopOnLowCoverage} \
        minInputCoverage={params.minInputCoverage} \
