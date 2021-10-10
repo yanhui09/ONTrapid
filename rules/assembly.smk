@@ -102,7 +102,7 @@ use rule quickmerge as quickmerge1 with:
 # circlize genome and use dnaA as start if possible
 rule circlator:
     input:
-        fasta = rules.quickmerge.output.fasta,
+        fasta = OUT_DIR + "/{sample}/quickmerge12polish/assembly.fasta",
         fastq_cor = rules.canu.output.fastq_cor,
     output:
         fasta = OUT_DIR + "/{sample}/circlator/assembly.fasta",
@@ -129,6 +129,83 @@ rule circlator:
         {input.fasta} {input.fastq_cor} {output._dir}.tmp > {log} 2>&1
         cp {output._dir}.tmp/06.fixstart.fasta {output.fasta}
         mv {output._dir}.tmp {output._dir}
+        """
+
+# polish with racon and medaka
+rule get_polish_input:
+    input: OUT_DIR + "/{sample}/{f}/assembly.fasta"
+    output: OUT_DIR + "/{sample}/{f}2polish/raw.fasta"
+    message: "In preparation for polishing {wildcards.f} assemblies [{wildcards.sample}]"
+    shell: "cp {input} {output}"
+
+# align merged assemblies with raw reads
+# reused in racon iterations
+rule minimap:
+    input: 
+      ref = OUT_DIR + "/{sample}/{f}2polish/{assembly}.fasta",
+      fastq = rules.nanofilt.output,
+    output: OUT_DIR + "/{sample}/{f}2polish/{assembly}.paf"
+    message: "{wildcards.f}2polish: alignments against {wildcards.assembly} assembly [{wildcards.sample}]"
+    params:
+        x=config["minimap"]["x"]
+    conda: "../envs/polish.yaml"
+    log: OUT_DIR + "/logs/minimap/{sample}/{f}2polish/{assembly}.log"
+    benchmark: OUT_DIR + "/benchmarks/minimap/{sample}/{f}2polish/{assembly}.txt"
+    threads: config["threads"]["large"]
+    shell:
+        "minimap2 -t {threads} -x {params.x}"
+        " {input.ref} {input.fastq} > {output} 2> {log}"
+
+def get_racon_input(wildcards):
+    # adjust input based on racon iteritions
+    if int(wildcards.iter) == 1:
+        prefix = OUT_DIR + "/{sample}/{f}2polish/raw"
+        return(prefix + ".paf", prefix + ".fasta")
+    else:
+        prefix = OUT_DIR + "/{sample}/{f}2polish/racon_{iter}".format(sample=wildcards.sample, f=wildcards.f, iter=str(int(wildcards.iter) - 1))
+        return(prefix + ".paf", prefix + ".fasta")
+
+rule racon:
+    input:
+        rules.nanofilt.output,
+        get_racon_input,
+    output: OUT_DIR + "/{sample}/{f}2polish/racon_{iter}.fasta"
+    message: "Polish {wildcards.f} assemblies with racon, round={wildcards.iter} [{wildcards.sample}]"
+    params:
+        m=config["racon"]["m"],
+        x=config["racon"]["x"],
+        g=config["racon"]["g"],
+        w=config["racon"]["w"],
+    conda: "../envs/polish.yaml"
+    log: OUT_DIR +"/logs/polish/racon/{sample}/{f}/round{iter}.log"
+    benchmark: OUT_DIR +"/benchmarks/polish/racon/{sample}/{f}/round{iter}.txt"
+    threads: config["threads"]["large"]
+    shell:
+        "racon -m {params.m} -x {params.x}"
+        " -g {params.g} -w {params.w} -t {threads}"
+        " {input} > {output} 2> {log}"
+
+checkpoint medaka_consensus:
+    input:
+        fasta = expand(OUT_DIR + "/{{sample}}/{{f}}2polish/racon_{iter}.fasta", 
+        iter = config["racon"]["iter"]),
+        fastq = rules.nanofilt.output,
+    output: 
+        fasta = OUT_DIR + "/{sample}/{f}2polish/assembly.fasta",
+    message: "Generate consensus for {wildcards.f} assemblies with medaka [{wildcards.sample}]"
+    params:
+        m=config["medaka"]["m"],
+        _dir=OUT_DIR + "/{sample}/polish",
+    conda: "../envs/polish.yaml"
+    log: OUT_DIR + "/logs/polish/medaka/{sample}/{f}.log"
+    benchmark: OUT_DIR + "/benchmarks/polish/medaka/{sample}/{f}.txt"
+    threads: config["threads"]["large"]
+    shell:
+        """
+        medaka_consensus -i {input.fastq} \
+        -d {input.fasta} -o {params._dir}/medaka \
+        -t {threads} -m {params.m} > {log} 2>&1;
+        cp {params._dir}/medaka/consensus.fasta {output.fasta}
         """
 
 rule quast:
@@ -167,113 +244,34 @@ rule busco:
         cd - >> {log} 2>&1
         """
 
-def fasta_to_polish(x):
-    if x == '--only-canu':
-        return (rules.canu.output.fasta, ["canu_out", "polish_out"])
-    elif x == '--only-flye':
-        return (rules.flye.output.fasta, ["flye_out", "polish_out"])
-    elif x == '--default':
-        return (rules.circlator.output.fasta, ["flye_out", "canu_out", "quickmerge1_out", "quickmerge2_out", "circlator_out", "polish_out"])
+def choose_assembly(x):
+    if x == 'canu' or x == 'flye':
+        return x+'_out', x+'2polish_out'
+    elif x == 'default':
+        out = ("flye", "canu", "quickmerge1", "quickmerge2")
+        out1 = [x + "_out" for x in out]
+        out2 = [x + "2polish_out" for x in out]
+        return  out1 + out2 + ["circlator_out"]
     else:
         raise Exception('Assembler-opts only allows --only-canu, --only-flye, --default.\n{} is used in the config file'.format(x))
 
-# polish with racon and medaka
-# assuming quickmerge is better (flye > canu)
-rule get_polish_input:
-    input: 
-        fasta = fasta_to_polish(config["assembler_opts"])[0],
-    output: OUT_DIR + "/{sample}/polish/raw.fasta"
-    message: "In preparation for polishing [{wildcards.sample}]"
-    shell: "cp {input.fasta} {output}"
-
-# align merged assemblies with raw reads
-# reuse for racon iterations
-rule minimap:
-    input: 
-      ref = OUT_DIR + "/{sample}/polish/{f}.fasta",
-      fastq = rules.nanofilt.output,
-    output: OUT_DIR + "/{sample}/polish/{f}.paf"
-    message: "Alignments against {wildcards.f} assembly [{wildcards.sample}]"
-    params:
-        x=config["minimap"]["x"]
-    conda: "../envs/polish.yaml"
-    log: OUT_DIR + "/logs/minimap/{sample}/{f}.log"
-    benchmark: OUT_DIR + "/benchmarks/minimap/{sample}/{f}.txt"
-    threads: config["threads"]["large"]
-    shell:
-        "minimap2 -t {threads} -x {params.x}"
-        " {input.ref} {input.fastq} > {output} 2> {log}"
-
-def get_racon_input(wildcards):
-    # adjust input based on racon iteritions
-    if int(wildcards.iter) == 1:
-        prefix = OUT_DIR + "/{sample}/polish/raw"
-        return(prefix + ".paf", prefix + ".fasta")
-    else:
-        prefix = OUT_DIR + "/{sample}/polish/racon_{iter}".format(sample = wildcards.sample, iter = str(int(wildcards.iter) - 1))
-        return(prefix + ".paf", prefix + ".fasta")
-
-rule racon:
-    input:
-        rules.nanofilt.output,
-        get_racon_input,
-    output: OUT_DIR + "/{sample}/polish/racon_{iter}.fasta"
-    message: "Polish with racon, round={wildcards.iter} [{wildcards.sample}]"
-    params:
-        m=config["racon"]["m"],
-        x=config["racon"]["x"],
-        g=config["racon"]["g"],
-        w=config["racon"]["w"],
-    conda: "../envs/polish.yaml"
-    log: OUT_DIR +"/logs/polish/racon/{sample}_round{iter}.log"
-    benchmark: OUT_DIR +"/benchmarks/polish/racon/{sample}_round{iter}.txt"
-    threads: config["threads"]["large"]
-    shell:
-        "racon -m {params.m} -x {params.x}"
-        " -g {params.g} -w {params.w} -t {threads}"
-        " {input} > {output} 2> {log}"
-
-
-checkpoint medaka_consensus:
-    input:
-        fasta = expand(OUT_DIR + "/{{sample}}/polish/racon_{iter}.fasta", 
-        iter = config["racon"]["iter"]),
-        fastq = rules.nanofilt.output,
-    output: 
-        fasta = OUT_DIR + "/{sample}/polish/assembly.fasta",
-    message: "Generate consensus with medaka [{wildcards.sample}]"
-    params:
-        m=config["medaka"]["m"],
-        _dir=OUT_DIR + "/{sample}/polish",
-    conda: "../envs/polish.yaml"
-    log: OUT_DIR + "/logs/polish/medaka/{sample}.log"
-    benchmark: OUT_DIR + "/benchmarks/polish/medaka/{sample}.txt"
-    threads: config["threads"]["large"]
-    shell:
-        """
-        medaka_consensus -i {input.fastq} \
-        -d {input.fasta} -o {params._dir}/medaka \
-        -t {threads} -m {params.m} > {log} 2>&1;
-        cp {params._dir}/medaka/consensus.fasta {output.fasta}
-        """
-
 # assembly QC for possible assemblies (polish_out after medaka_consensus)
-def choose_assembly_qc(x,y):
+def choose_qc(x,y):
     if y == 'busco':
         return expand(OUT_DIR + "/{{sample}}/busco/{f}", 
-        f=fasta_to_polish(x)[1])
+        f=choose_assembly(x))
     elif y == 'quast':
         return expand(OUT_DIR + "/{{sample}}/quast/{f}", 
-        f=fasta_to_polish(x)[1])
+        f=choose_assembly(x))
     elif y == 'both':
         return expand(OUT_DIR + "/{{sample}}/{qc}/{f}", 
-        f=fasta_to_polish(x)[1], qc=("busco", "quast"))
+        f=choose_assembly(x), qc=("busco", "quast"))
     else:
         raise Exception('Assembly_qc only allows busco, quast, both.\n{} is used in the config file'.format(y))
  
 rule assembly_qc:
     input:
-        choose_assembly_qc(config["assembler_opts"], config["assembly_qc"]),
+        choose_qc(config["assembler_opts"], config["assembly_qc"]),
     output: OUT_DIR + "/{sample}/Assembly.end"
     message: "Assembly Finished [wildcards.sample]"
     shell: "touch {output}"

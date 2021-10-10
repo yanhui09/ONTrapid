@@ -21,7 +21,7 @@ nanofilt:
   headcrop: 0
   tailcrop: 0
 
-assembler_opts: --only-flye # --default, --only-canu, --only-flye
+assembler_opts: default # default, canu, flye
 # by default, canu and flye assemblies will be merged
 # For single assembler i.e., canu and flye, # only polishment is applied.
 # Skip quickmerge and circulator
