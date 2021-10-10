@@ -32,6 +32,8 @@ rule canu:
         size=config["canu"]["size"],
         usegrid=config["canu"]["usegrid"],
         grid_opts=config["canu"]["grid_opts"],
+        stopOnLowCoverage=config["canu"]["stopOnLowCoverage"],
+        minInputCoverage=config["canu"]["minInputCoverage"],
         ex_args=config["canu"]["ex_args"],
     conda: "../envs/canu.yaml"
     log: OUT_DIR + "/logs/canu/{sample}.log"
@@ -41,7 +43,10 @@ rule canu:
        """
        canu -p assembly -d {output._dir}/ -nanopore {input} \
        genomeSize={params.size} {params.ex_args} \
+       minThreads={threads} maxThreads={threads} \
        useGrid={params.usegrid} gridOptions={params.grid_opts} \
+       stopOnLowCoverage={params.stopOnLowCoverage} \
+       minInputCoverage={params.minInputCoverage} \
        > {log} 2>&1
        mv {output._dir}/assembly.contigs.fasta {output.fasta}
        """

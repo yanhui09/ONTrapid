@@ -29,6 +29,8 @@ canu:
   size: 5m # estimated genomesize
   usegrid: False
   grid_opts: ''
+  stopOnLowCoverage: 10
+  minInputCoverage: 10
   ex_args: 'cnsThreads=2 cnsMemory=32'
 
 
@@ -67,7 +69,7 @@ medaka:
   m: r941_min_fast_g507
 
 # assembly qc
-assembly_qc: busco # busco, quast, both
+assembly_qc: both # busco, quast, both
 busco:
   l: bacteria_odb10
   m: genome
