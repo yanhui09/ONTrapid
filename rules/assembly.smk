@@ -169,9 +169,9 @@ rule busco:
 
 def fasta_to_polish(x):
     if x == '--only-canu':
-        return (rules.canu.output.fasta, ["canu_out"])
+        return (rules.canu.output.fasta, ["canu_out", "polish_out"])
     elif x == '--only-flye':
-        return (rules.flye.output.fasta, ["flye_out"])
+        return (rules.flye.output.fasta, ["flye_out", "polish_out"])
     elif x == '--default':
         return (rules.circlator.output.fasta, ["flye_out", "canu_out", "quickmerge1_out", "quickmerge2_out", "circlator_out"])
     else:
