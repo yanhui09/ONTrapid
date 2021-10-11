@@ -241,6 +241,7 @@ rule busco:
         busco -i {input} -o {params.o} --out_path {params.out_path} \
         -l {params.l} -m {params.m} {params.opts} -c {threads} \
         > {log} 2>&1;
+        mv {params.out_path}/{params.o}/*.txt {params.out_path}/{params.o}/summary.txt;
         cd - >> {log} 2>&1
         """
 
