@@ -76,10 +76,10 @@ rule nanofilt:
     threads: config["threads"]["normal"]
     shell:
         """
-        cat {input} | NanoFilt -q {params.q} -l {params.l} \
+        NanoFilt -q {params.q} -l {params.l} \
         --headcrop {params.headcrop} \
         --tailcrop {params.tailcrop} \
-        > {output} 2> {log}
+        {input} > {output} 2> {log}
         """
 
 use rule qc as post_qc with:
