@@ -256,23 +256,45 @@ def choose_assembly(x):
     else:
         raise Exception('Assembler-opts only allows --only-canu, --only-flye, --default.\n{} is used in the config file'.format(x))
 
-# assembly QC for possible assemblies (polish_out after medaka_consensus)
-def choose_qc(x,y):
-    if y == 'busco':
-        return expand(OUT_DIR + "/{{sample}}/busco/{f}", 
-        f=choose_assembly(x))
-    elif y == 'quast':
-        return expand(OUT_DIR + "/{{sample}}/quast/{f}", 
-        f=choose_assembly(x))
-    elif y == 'both':
-        return expand(OUT_DIR + "/{{sample}}/{qc}/{f}", 
-        f=choose_assembly(x), qc=("busco", "quast"))
-    else:
-        raise Exception('Assembly_qc only allows busco, quast, both.\n{} is used in the config file'.format(y))
+# summarize QC output
+rule quast_summary:
+    input: expand(OUT_DIR + "/{{sample}}/quast/{f}", f=choose_assembly(config["assembler_opts"]))
+    output: OUT_DIR + "/{sample}/quast_summary.tsv",
+    message: "QUAST summary [{wildcards.sample}]"
+    run:
+        import pandas as pd
+        import os
+        quast_stats = pd.DataFrame()
+        for dir in input:
+            d = pd.read_csv(dir + "/report.tsv", sep="\t", skiprows=1, index_col=0, header=None)
+            quast_stats = quast_stats.append(d.T)
+        
+        quast_stats.index = [os.path.split(x)[-1] for x in input]
+        quast_stats.T.to_csv(output[0], sep="\t")
  
-rule assembly_qc:
-    input:
-        choose_qc(config["assembler_opts"], config["assembly_qc"]),
-    output: OUT_DIR + "/{sample}/Assembly.end"
-    message: "Assembly Finished [wildcards.sample]"
-    shell: "touch {output}"
+rule busco_summary:
+    input: expand(OUT_DIR + "/{{sample}}/busco/{f}", f=choose_assembly(config["assembler_opts"]))
+    output: OUT_DIR + "/{sample}/busco_summary.tsv",
+    message: "BUSCO summary [{wildcards.sample}]"
+    run:
+        import pandas as pd
+        import os
+        def busco2tdf(file):
+            stats_lines = []
+            with open(file) as f:
+                for i, line in enumerate(f):
+                    if 8 <= i <= 14:
+                        stats_lines.append(line.lstrip())
+            
+            val = [x.split("\t")[0] for x in stats_lines]
+            _index = ["Percentage"] + [x.split("\t")[1] for x in stats_lines[1:] if "\t" in x]
+            df = pd.DataFrame(val, index=_index)
+            return df
+
+        busco_stats = pd.DataFrame()
+        for dir in input:
+            d = busco2tdf(dir + "/summary.txt")
+            busco_stats = busco_stats.append(d.T)
+        
+        busco_stats.index = [os.path.split(x)[-1] for x in input]
+        busco_stats.T.to_csv(output[0], sep="\t")

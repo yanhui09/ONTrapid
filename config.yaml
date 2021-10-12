@@ -75,7 +75,6 @@ medaka:
   m: r941_min_fast_g507
 
 # assembly qc
-assembly_qc: both # busco, quast, both
 busco:
   l: bacteria_odb10
   m: genome

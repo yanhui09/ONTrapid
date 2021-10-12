@@ -17,7 +17,8 @@ SAMPLES = sampleTable.index.values
 #---------------------------------
 rule all:
     input: 
-        expand(OUT_DIR + "/{sample}/Assembly.end", sample=SAMPLES)
+        expand(OUT_DIR + "/{sample}/{qc}_summary.tsv", 
+        sample=SAMPLES,qc=["busco", "quast"])
 
 # intialize input     
 def get_input(wildcards):
