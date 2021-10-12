@@ -56,21 +56,22 @@ rule canu:
 
 # consensus from multiple contig sets, two-round quickmerge
 # To do: include options for hybrid-assembly
+
 rule quickmerge:
     input:
-        query = OUT_DIR + "/{sample}/flye2polish/assembly.fasta",
-        ref = OUT_DIR + "/{sample}/canu2polish/assembly.fasta",
+        query = OUT_DIR + "/{sample}/%s/assembly.fasta" % config["quickmerge"]["query"],
+        ref = OUT_DIR + "/{sample}/%s/assembly.fasta" % config["quickmerge"]["ref"],
     output: 
-        fasta = OUT_DIR + "/{sample}/quickmerge1/assembly.fasta",
-        _dir = directory(OUT_DIR + "/{sample}/quickmerge1"), 
+        fasta = OUT_DIR + "/{sample}/quickmerge/assembly.fasta",
+        _dir = directory(OUT_DIR + "/{sample}/quickmerge"), 
     message: "Merge assemblies [{wildcards.sample}]"
     params:
         ml=config["quickmerge"]["ml"],
         c=config["quickmerge"]["c"],
         hco=config["quickmerge"]["hco"],
     conda: "../envs/quickmerge.yaml"
-    log: OUT_DIR + "/logs/quickmerge1/{sample}.log"
-    benchmark: OUT_DIR + "/benchmarks/quickmerge1/{sample}.txt"
+    log: OUT_DIR + "/logs/quickmerge/{sample}.log"
+    benchmark: OUT_DIR + "/benchmarks/quickmerge/{sample}.txt"
     shell:
         # can't use absolute path in --prefix 
         """
@@ -81,28 +82,12 @@ rule quickmerge:
         mv merged_out.fasta {output.fasta}; cd - >> {log} 2>&1
         """
 
-use rule quickmerge as quickmerge1 with:
-    input:
-        query = OUT_DIR + "/{sample}/canu2polish/assembly.fasta",
-        ref = OUT_DIR + "/{sample}/flye2polish/assembly.fasta",
-    output: 
-        fasta = OUT_DIR + "/{sample}/quickmerge2/assembly.fasta",
-        _dir = directory(OUT_DIR + "/{sample}/quickmerge2"), 
-    params: # issues in snakemake, include all if changed
-        ml=config["quickmerge"]["ml"],
-        c=config["quickmerge"]["c"],
-        hco=config["quickmerge"]["hco"],
-    log: 
-        OUT_DIR + "/logs/quickmerge2/{sample}.log"
-    benchmark: 
-        OUT_DIR + "/benchmarks/quickmerge2/{sample}.txt"
- 
 # circularization with circlator
 # use polished assemblies and canu corrected|trimmed reads
 # circlize genome and use dnaA as start if possible
 rule circlator:
     input:
-        fasta = OUT_DIR + "/{sample}/quickmerge12polish/assembly.fasta",
+        fasta = OUT_DIR + "/{sample}/quickmerge2polish/assembly.fasta",
         fastq_cor = rules.canu.output.fastq_cor,
     output:
         fasta = OUT_DIR + "/{sample}/circlator/assembly.fasta",
@@ -249,7 +234,7 @@ def choose_assembly(x):
     if x == 'canu' or x == 'flye':
         return x+'_out', x+'2polish_out'
     elif x == 'default':
-        out = ("flye", "canu", "quickmerge1", "quickmerge2", "circlator")
+        out = ("flye", "canu", "quickmerge", "circlator")
         out1 = [x + "_out" for x in out]
         out2 = [x + "2polish_out" for x in out]
         return  out1 + out2
