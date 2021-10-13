@@ -1,5 +1,5 @@
 # Allow users to fix the underlying OS via singularity.
-container: "docker://continuumio/miniconda3"
+container: "docker://snakemake/snakemake:latest"
 
 import pandas as pd
 #-----------------
