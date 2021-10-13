@@ -1,3 +1,6 @@
+# Allow users to fix the underlying OS via singularity.
+singularity: "docker://continuumio/miniconda3"
+
 import pandas as pd
 #-----------------
 configfile: "config.yaml"
