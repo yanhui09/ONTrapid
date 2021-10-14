@@ -1,7 +1,9 @@
 name: circlator
 channels:
   - bioconda
+  - conda-forge
 dependencies:
   - circlator
   - canu=1.6
+  - gnuplot
   - setuptools
