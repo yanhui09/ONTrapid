@@ -3,5 +3,5 @@ channels:
   - bioconda
 dependencies:
   - nanoqc
-  - nanofilt
+  - nanofilt>=2.3
   - nanostat

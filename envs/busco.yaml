@@ -2,4 +2,4 @@ name: busco
 channels:
   - bioconda
 dependencies:
-  - busco
+  - busco<=5.1
