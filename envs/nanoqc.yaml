@@ -1,6 +1,7 @@
 name: nanoqc
 channels:
   - bioconda
+  - conda-forge
 dependencies:
   - nanoqc
   - nanofilt>=2.3
