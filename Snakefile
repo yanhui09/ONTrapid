@@ -40,3 +40,4 @@ rule init:
 
 include: "rules/qc.smk"
 include: "rules/assembly.smk"
+include: "rules/variants.smk"

@@ -9,7 +9,7 @@ memory:
 
 # rasusa params (subsampling for speed)
 rasusa:
-  subsampling: TRUE
+  subsampling: FALSE
   coverage: 30
   genome_size: 2.4mb
 
@@ -79,3 +79,13 @@ busco:
   l: bacteria_odb10
   m: genome
   opts: ''
+
+# variants:
+variants:
+  ref: "/mnt/md0/nano_snp/Escherichia_coli_K12.fasta"
+  medaka:
+    model: r941_prom_hac_variant_g507
+  clair:
+    platform: ont
+    model: r941_prom_sup_g506
+    mode: --haploid_sensitive
