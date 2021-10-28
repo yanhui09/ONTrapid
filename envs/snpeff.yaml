@@ -1,7 +1,6 @@
-name: gatk
+name: snpeff
 channels:
   - bioconda
   - conda-forge
 dependencies:
-  - gatk4
   - snpeff

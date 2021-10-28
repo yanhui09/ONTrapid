@@ -181,33 +181,7 @@ rule vcf_merge:
         --merge all {input} -Ov -o {output} > {log} 2>&1
         """
 
-rule gatk_dict:
-    input: rules.faidx.output.ref, 
-    output: OUT_DIR + "/variants/ref.dict",
-    message: "Create a dict file for reference"
-    conda: "../envs/gatk.yaml"
-    log: OUT_DIR + "/logs/varaints/gatk/create_dict.log"
-    benchmark: OUT_DIR + "/benchmarks/variants/gatk/create_dict.txt"
-    shell: 
-        "gatk CreateSequenceDictionary -R {input} > {log} 2>&1"
-
-rule ValidateVariants:
-    input:
-        rules.gatk_dict.output,
-        ref = rules.faidx.output.ref, 
-        vcf = rules.vcf_merge.output,
-    output: OUT_DIR + "/variants/vcfs_isc_merged.validated"
-    message: "Validate the merged vcf file"
-    conda: "../envs/gatk.yaml"
-    log: OUT_DIR + "/logs/varaints/gatk/ValidateVariants.log"
-    benchmark: OUT_DIR + "/benchmarks/variants/gatk/ValidateVariants.txt"
-    shell:
-        """
-        gatk ValidateVariants -R {input.ref} -V {input.vcf} > {log} 2>&1
-        touch {output}
-        """
-
-rule VariantAnnotate:
+rule variant_annotate:
     input: 
         ref = rules.faidx.output.ref, 
         vcf = rules.vcf_merge.output,
@@ -216,13 +190,13 @@ rule VariantAnnotate:
         snpEff = OUT_DIR + "/variants/vcfs_isc_merged.ann.vcf",
         _dir=directory(OUT_DIR+"/variants/snpEff"),
     message: "Annotate the merged vcf file with SnpEff"
-    conda: "../envs/gatk.yaml"
+    conda: "../envs/snpeff.yaml"
     params:
         g_version="Escherichia_coli_k_12",
         chr_exist="U00096\.3",
         chr_replace="Chromosome",
-    log: OUT_DIR + "/logs/varaints/gatk/VariantAnnotate.log"
-    benchmark: OUT_DIR + "/benchmarks/variants/gatk/VariantAnnotate.txt"
+    log: OUT_DIR + "/logs/varaints/snpEff/VariantAnnotate.log"
+    benchmark: OUT_DIR + "/benchmarks/variants/snpEff/VariantAnnotate.txt"
     shell:
         """
         sed 's/{params.chr_exist}/{params.chr_replace}/' {input.vcf} > {output.vcf2snpEff}
