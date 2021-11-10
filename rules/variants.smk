@@ -20,7 +20,7 @@ rule medaka_haploid_variants:
         -r {params.fasta} -o {params._dir}  \
         -m {params.m} -s -t {threads} \
         > {log} 2>&1
-        rm {input.fasta}.mmi {input.fasta}.fai
+        rm {params.fasta}.mmi {params.fasta}.fai
         """
 
 # Clair3 https://github.com/HKU-BAL/Clair3
