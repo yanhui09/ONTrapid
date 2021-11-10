@@ -82,7 +82,7 @@ busco:
 
 # variants:
 variants:
-  ref: "/mnt/md0/nano_snp/Escherichia_coli_K12.fasta"
+  ref: "/mnt/md0/nano_snp/ref/ecoli_mg1655.fna"
   medaka:
     model: r941_prom_hac_variant_g507
   clair:

@@ -192,7 +192,7 @@ rule variant_annotate:
     message: "Annotate the merged vcf file with SnpEff"
     conda: "../envs/snpeff.yaml"
     params:
-        g_version="Escherichia_coli_k_12",
+        g_version="Escherichia_coli_str_k_12_substr_mg1655", # Escherichia_coli_str_dh5a 
         chr_exist="U00096\.3",
         chr_replace="Chromosome",
     log: OUT_DIR + "/logs/varaints/snpEff/VariantAnnotate.log"
