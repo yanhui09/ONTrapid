@@ -82,10 +82,14 @@ busco:
 
 # variants:
 variants:
-  ref: "/mnt/md0/nano_snp/ref/ecoli_mg1655.fna"
+  ref: /mnt/md0/nano_snp/ref/ecoli_dh5a.fna #/mnt/md0/nano_snp/ref/ecoli_mg1655.fna
   medaka:
     model: r941_prom_hac_variant_g507
   clair:
     platform: ont
     model: r941_prom_sup_g506
     mode: --haploid_sensitive
+  snpEff:
+    g_version: Escherichia_coli_str_dh5a # Escherichia_coli_str_k_12_substr_mg1655
+    chr_exist: "CP026085\\.1" # "U00096\\.3"
+    chr_replace: Chromosome

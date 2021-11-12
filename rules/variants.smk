@@ -192,9 +192,9 @@ rule variant_annotate:
     message: "Annotate the merged vcf file with SnpEff"
     conda: "../envs/snpeff.yaml"
     params:
-        g_version="Escherichia_coli_str_k_12_substr_mg1655", # Escherichia_coli_str_dh5a 
-        chr_exist="U00096\.3",
-        chr_replace="Chromosome",
+        g_version=config["variants"]["snpEff"]["g_version"],
+        chr_exist=config["variants"]["snpEff"]["chr_exist"],
+        chr_replace=config["variants"]["snpEff"]["chr_replace"],
     log: OUT_DIR + "/logs/varaints/snpEff/VariantAnnotate.log"
     benchmark: OUT_DIR + "/benchmarks/variants/snpEff/VariantAnnotate.txt"
     shell:
@@ -204,3 +204,8 @@ rule variant_annotate:
         snpEff ann -i vcf -o gatk {params.g_version} {output.vcf2snpEff} > {output.snpEff} 2> {log}
         cd - > /dev/null 2>&1
         """
+
+# To do:
+# build custom snpEff database
+# https://www.biostars.org/p/432180/
+# Probably use the consensus assembly to call snp ? a custrom reference?
