@@ -91,5 +91,5 @@ variants:
     mode: --haploid_sensitive
   snpEff:
     g_version: Escherichia_coli_str_dh5a # Escherichia_coli_str_k_12_substr_mg1655
-    chr_exist: "CP026085\\.1" # "U00096\\.3"
+    chr_exist: "CP017100\\.1" # "U00096\\.3"
     chr_replace: Chromosome
