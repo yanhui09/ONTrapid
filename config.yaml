@@ -1,6 +1,6 @@
 work_dir: "/mnt/md0/metapredict"
 threads:
-  normal: 6
+  normal: 2
   large: 6
 
 memory:
@@ -21,7 +21,7 @@ nanofilt:
   headcrop: 0
   tailcrop: 0
 
-assembler_opts: default # default, canu, flye
+assembler_opts: flye # default, canu, flye
 # by default, canu and flye assemblies will be merged
 # For single assembler i.e., canu and flye, # only polishment is applied.
 # Skip quickmerge and circulator
