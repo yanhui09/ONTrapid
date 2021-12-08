@@ -21,13 +21,36 @@ Manually edit the working directory path and params in the `config.yaml`.
 mkdir /path/to/working/directory
 python init.py -p /path/to/raw/data -o /path/to/working/directory
 ```
+`/path/to/raw/data` shall be the main directory containing respective runs. E.g. `/mnt/md0/metapredict/raw`,
+```
+/mnt/md0/metapredict/raw
+├── RAPID19
+│   └── basecalled_fq
+│       ├── barcode01
+│       ├── barcode02
+│       ├── barcode03
+│       ├── barcode04
+│       ├── barcode05
+│       ├── barcode06
+│       ├── barcode07
+│       └── barcode08
+├── RAPID20
+│   └── basecalled_fq
+│       ├── barcode06
+│       ├── barcode07
+│       ├── barcode08
+│       ├── barcode09
+│       ├── barcode10
+│       ├── barcode11
+│       └── barcode12
+```
 
 ## Assembly
 ```
-snakemake -j 24 --use-conda
+snakemake -j 24 --use-conda --config work_dir=/path/to/working/directory
 ```
 
 ## Variants calling
 ```
-snakemake --core 6 --use-conda /mnt/md0/nano_snp/out_dh5a/results/variants/vcfs_isc_merged.ann.vcf --config work_dir="/mnt/md0/nano_snp/out_dh5a"
+snakemake -j 6 --use-conda /mnt/md0/nano_snp/out_dh5a/results/variants/vcfs_isc_merged.ann.vcf --config work_dir="/mnt/md0/nano_snp/out_dh5a"
 ```
