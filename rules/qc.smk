@@ -1,3 +1,18 @@
+# intialize input     
+def get_input(wildcards):
+    fqs_dir = sampleTable.loc[wildcards.sample, 'fq_dir']
+    return expand(fqs_dir + "/{f}.fastq.gz", 
+    f = glob_wildcards(fqs_dir + "/{f}.fastq.gz").f)
+
+rule init:
+    input: get_input
+    output: OUT_DIR + "/init/{sample}.fastq"
+    message: "Initialize input [{wildcards.sample}]"
+    log: OUT_DIR + "/logs/init/{sample}.log"
+    benchmark: OUT_DIR + "/benchmarks/init/{sample}.txt"
+    shell:
+        "zcat {input} > {output} 2> {log}"
+
 rule rasusa:
     input: rules.init.output,
     output: OUT_DIR + "/{sample}/subsampled_%sx.fastq" % config["rasusa"]["coverage"], 
