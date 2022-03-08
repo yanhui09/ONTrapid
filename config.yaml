@@ -9,7 +9,7 @@ memory:
 
 # rasusa params (subsampling for speed)
 rasusa:
-  subsampling: FALSE
+  subsampling: TRUE
   coverage: 30
   genome_size: 2.4mb
 
