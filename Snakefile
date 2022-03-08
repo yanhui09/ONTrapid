@@ -16,7 +16,11 @@ def load_sample_table(sample_table=WORK_DIR + "/samples.tsv"):
 
 sampleTable = load_sample_table()
 SAMPLES = sampleTable.index.values
+# annotation database
+COG = config["database_dir"] + "/cog"
+KEGG = config["database_dir"] + "/kegg"
 
+include: "rules/init.smk"
 include: "rules/qc.smk"
 include: "rules/assembly.smk"
 include: "rules/pangenomics.smk"
@@ -26,6 +30,12 @@ rule all:
     input: 
         expand(OUT_DIR + "/{sample}/{qc}_summary.tsv", 
         sample=SAMPLES, qc=["busco", "quast"])
+
+rule initDB:
+    input:
+        rules.setup_cogs.output,
+        rules.setup_kofams.output,
+    output: touch(OUT_DIR + "/.initDB_DONE")
 
 rule pangenome:
     input:

@@ -1,7 +1,3 @@
-# annotation database
-COG="/mnt/md0/Database/anvio/cog"
-KEGG="/mnt/md0/Database/anvio/kegg"
-
 # collect polished assemblies
 rule collect_assembly:
     input: OUT_DIR + "/{sample}/flye2polish/assembly.fasta"

@@ -1,4 +1,6 @@
 work_dir: "/mnt/md0/metapredict"
+database_dir: "/mnt/md0/Database/anvio"
+
 threads:
   normal: 2
   large: 6
