@@ -1,0 +1,11 @@
+# DATE: 08 Mar 22 13:51:21
+# CMD LINE: makeblastdb -in /tmp/tmpjxp9yg3n -dbtype prot -out /mnt/md0/Database/anvio/cog/COG20/DB_BLAST/COG/COG.fa
+
+
+Building a new DB, current time: 03/08/2022 13:51:21
+New DB name:   /mnt/md0/Database/anvio/cog/COG20/DB_BLAST/COG/COG.fa
+New DB title:  /tmp/tmpjxp9yg3n
+Sequence type: Protein
+Keep MBits: T
+Maximum file size: 1000000000B
+Adding sequences from FASTA; added 3213025 sequences in 111.262 seconds.

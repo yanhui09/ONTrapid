@@ -11,6 +11,7 @@ rule collect_assembly:
 rule reformat_fasta:
     input: rules.collect_assembly.output
     output: OUT_DIR + "/pangenomics/reformated/{sample}.fasta"
+    conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/reformat_fasta/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/pangenomics/reformat_fasta/{sample}.txt"
     shell: "anvi-script-reformat-fasta {input} -o {output} -l 0 --simplify-names > {log} 2>&1"
@@ -19,6 +20,7 @@ rule reformat_fasta:
 rule contig_db:
     input: OUT_DIR + "/pangenomics/reformated/{sample}.fasta"
     output: OUT_DIR + "/pangenomics/contig_db/{sample}.db"
+    conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/contig_db/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/pangenomics/contig_db/{sample}.txt"
     threads: config["threads"]["normal"]
@@ -28,6 +30,7 @@ rule contig_db:
 rule run_hmms:
     input: OUT_DIR + "/pangenomics/contig_db/{sample}.db"
     output: OUT_DIR + "/pangenomics/.hmms/.{sample}_DONE"
+    conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/run_hmms/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/pangenomics/run_hmms/{sample}.txt"
     threads: config["threads"]["normal"]
@@ -38,6 +41,7 @@ rule run_cogs:
     output: OUT_DIR + "/pangenomics/.cogs/.{sample}_DONE"
     params:
         COG = COG,
+    conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/run_cogs/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/pangenomics/run_cogs/{sample}.txt"
     threads: config["threads"]["normal"]
@@ -49,6 +53,7 @@ rule run_kofams:
     output: OUT_DIR + "/pangenomics/.kofams/.{sample}_DONE"
     params:
         KEGG = KEGG,
+    conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/run_kofams/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/pangenomics/run_kofams/{sample}.txt"
     threads: config["threads"]["normal"]
@@ -70,6 +75,7 @@ rule gen_genomes_storage:
       expand(OUT_DIR + "/pangenomics/.kofams/.{sample}_DONE", sample=SAMPLES),
       glist = rules.gen_genomes_list.output,
     output: OUT_DIR + "/pangenomics/GENOMES.db"
+    conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/gen_genomes_storage.log"
     benchmark: OUT_DIR + "/benchmarks/pangenomics/gen_genomes_storage.txt"
     shell: "anvi-gen-genomes-storage -e {input.glist} -o {output}"
@@ -80,6 +86,7 @@ rule pan_genome:
     output: 
         db = OUT_DIR + "/pangenomics/pan_genomes/proj-PAN.db",
         _dir = OUT_DIR + "/pangenomics/pan_genomes",
+    conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/pan_genome.log"
     benchmark: OUT_DIR + "/benchmarks/pangenomics/pan_genome.txt"
     threads: config["threads"]["large"]
@@ -109,6 +116,7 @@ rule calc_genome_similarity:
        glist = rules.gen_genomes_list.output, 
        db = rules.pan_genome.output.db,
     output: directory(OUT_DIR + "/pangenomics/ANI")
+    conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/calc_genome_similarity.log"
     benchmark: OUT_DIR + "/benchmarks/pangenomics/calc_genome_similarity.txt"
     threads: config["threads"]["large"]
@@ -130,6 +138,7 @@ rule calc_genome_similarity:
 rule add_default_collection:
     input: rules.pan_genome.output.db,
     output: OUT_DIR + "/pangenomics/.add_default_collection_DONE",
+    conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/add_default_collection.log"
     benchmark: OUT_DIR + "/benchmarks/pangenomics/add_default_collection.txt"
     shell: "anvi-script-add-default-collection -p {input} > {log} 2>&1 && touch {output}"
@@ -140,6 +149,7 @@ rule anvi_sum:
       gdb = rules.gen_genomes_storage.output,
       pandb = OUT_DIR + "/pangenomics/pan_genomes/proj-PAN.db",
     output: directory(OUT_DIR + "/pangenomics/pan_genomes/summary_gcs"),
+    conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/anvi_sum.log"
     benchmark: OUT_DIR + "/benchmarks/pangenomics/anvi_sum.txt"
     shell:
