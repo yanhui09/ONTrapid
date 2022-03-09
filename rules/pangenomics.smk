@@ -85,7 +85,7 @@ rule pan_genome:
     input: rules.gen_genomes_storage.output,
     output: 
         db = OUT_DIR + "/pangenomics/pan_genomes/proj-PAN.db",
-        _dir = OUT_DIR + "/pangenomics/pan_genomes",
+        _dir = directory(OUT_DIR + "/pangenomics/pan_genomes"),
     conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/pan_genome.log"
     benchmark: OUT_DIR + "/benchmarks/pangenomics/pan_genome.txt"
