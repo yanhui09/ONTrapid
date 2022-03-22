@@ -1,15 +1,11 @@
-# collect polished assemblies
-rule collect_assembly:
-    input: OUT_DIR + "/{sample}/flye2polish/assembly.fasta"
-    output: OUT_DIR + "/pangenomics/assembly/{sample}.fasta"
-    log: OUT_DIR + "/logs/pangenomics/collect_assembly/{sample}.log"
-    benchmark: OUT_DIR + "/benchmarks/pangenomics/collect_assembly/{sample}.txt"
-    shell: "cp {input} {output} > {log} 2>&1"
+# extract sample info in assembly/
+def get_pansamples(wildcards):
+    return glob_wildcards(checkpoints.collect_assembly.get(**wildcards).output[0] + "/{sample}.fasta").sample
 
 # build anvio contig database
 # clean the fasta header if possible, especially for NCBI ref
 rule reformat_fasta:
-    input: rules.collect_assembly.output
+    input: OUT_DIR + "/assembly/{sample}.fasta"
     output: OUT_DIR + "/pangenomics/reformated/{sample}.fasta"
     conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/reformat_fasta/{sample}.log"
@@ -61,7 +57,7 @@ rule run_kofams:
 
 # create the GENOME storage
 rule gen_genomes_list:
-    input: expand(OUT_DIR + "/pangenomics/contig_db/{sample}.db", sample=SAMPLES)
+    input: lambda wc: expand(OUT_DIR + "/pangenomics/contig_db/{sample}.db", sample=get_pansamples(wc))
     output: OUT_DIR + "/pangenomics/genomes.txt"
     run:
         genomes = [x.split("/")[-1].split(".")[0] for x in input]
@@ -71,8 +67,8 @@ rule gen_genomes_list:
      
 rule gen_genomes_storage:
     input: 
-      expand(OUT_DIR + "/pangenomics/.cogs/.{sample}_DONE", sample=SAMPLES),
-      expand(OUT_DIR + "/pangenomics/.kofams/.{sample}_DONE", sample=SAMPLES),
+      lambda wc: expand(OUT_DIR + "/pangenomics/.cogs/.{sample}_DONE", sample=get_pansamples(wc)),
+      lambda wc: expand(OUT_DIR + "/pangenomics/.kofams/.{sample}_DONE", sample=get_pansamples(wc)),
       glist = rules.gen_genomes_list.output,
     output: OUT_DIR + "/pangenomics/GENOMES.db"
     conda: "../envs/anvio.yaml"

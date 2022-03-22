@@ -27,9 +27,16 @@ include: "rules/pangenomics.smk"
 include: "rules/variants.smk"
 #---------------------------------
 rule all:
+    input:
+        expand(OUT_DIR + "/.{rule}_DONE", rule=["assemble", "initDB", "pangenome"])
+
+
+rule assemble:
     input: 
         expand(OUT_DIR + "/{sample}/{qc}_summary.tsv", 
-        sample=SAMPLES, qc=["busco", "quast"])
+        sample=SAMPLES, qc=["busco", "quast"]),
+        OUT_DIR + "/assembly/",
+    output: touch(OUT_DIR + "/.assemble_DONE")
 
 rule initDB:
     input:

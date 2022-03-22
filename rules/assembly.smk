@@ -170,7 +170,7 @@ rule racon:
         " -g {params.g} -w {params.w} -t {threads}"
         " {input} > {output} 2> {log}"
 
-checkpoint medaka_consensus:
+rule medaka_consensus:
     input:
         fasta = expand(OUT_DIR + "/{{sample}}/{{f}}2polish/racon_{iter}.fasta", 
         iter = config["racon"]["iter"]),
@@ -283,3 +283,18 @@ rule busco_summary:
         
         busco_stats.index = [os.path.split(x)[-1] for x in input]
         busco_stats.T.to_csv(output[0], sep="\t")
+
+# collect polished assemblies
+checkpoint collect_assembly:
+    input: expand(OUT_DIR+ "/{sample}/flye2polish/assembly.fasta", sample = SAMPLES)
+    output: directory(OUT_DIR + "/assembly")
+    run:
+        import os
+        import shutil
+
+        if not os.path.exists(output[0]):
+            os.makedirs(output[0])
+        for f in input:
+            # extract sample name from path
+            sample = os.path.split(f)[0].split("/")[-2]
+            shutil.copy(f, output[0] + "/"  + sample + ".fasta")
