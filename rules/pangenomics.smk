@@ -14,7 +14,7 @@ rule reformat_fasta:
 
 # generate anvio contig db
 rule contig_db:
-    input: OUT_DIR + "/pangenomics/reformated/{sample}.fasta"
+    input: ancient(OUT_DIR + "/pangenomics/reformated/{sample}.fasta")
     output: OUT_DIR + "/pangenomics/contig_db/{sample}.db"
     conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/contig_db/{sample}.log"
@@ -24,7 +24,7 @@ rule contig_db:
 
 # hmms calculation
 rule run_hmms:
-    input: OUT_DIR + "/pangenomics/contig_db/{sample}.db"
+    input: ancient(OUT_DIR + "/pangenomics/contig_db/{sample}.db")
     output: OUT_DIR + "/pangenomics/.hmms/.{sample}_DONE"
     conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/run_hmms/{sample}.log"
@@ -33,7 +33,7 @@ rule run_hmms:
     shell: "anvi-run-hmms -c {input} --also-scan-trnas -T {threads} > {log} 2>&1 && touch {output}"
 # COG annoatation
 rule run_cogs:
-    input: OUT_DIR + "/pangenomics/contig_db/{sample}.db"
+    input: ancient(OUT_DIR + "/pangenomics/contig_db/{sample}.db")
     output: OUT_DIR + "/pangenomics/.cogs/.{sample}_DONE"
     params:
         COG = COG,
@@ -45,7 +45,7 @@ rule run_cogs:
 
 # KEGG annotation
 rule run_kofams:
-    input: OUT_DIR + "/pangenomics/contig_db/{sample}.db"
+    input: ancient(OUT_DIR + "/pangenomics/contig_db/{sample}.db")
     output: OUT_DIR + "/pangenomics/.kofams/.{sample}_DONE"
     params:
         KEGG = KEGG,
@@ -57,7 +57,7 @@ rule run_kofams:
 
 # create the GENOME storage
 rule gen_genomes_list:
-    input: lambda wc: expand(OUT_DIR + "/pangenomics/contig_db/{sample}.db", sample=get_pansamples(wc))
+    input: ancient(lambda wc: expand(OUT_DIR + "/pangenomics/contig_db/{sample}.db", sample=get_pansamples(wc)))
     output: OUT_DIR + "/pangenomics/genomes.txt"
     run:
         genomes = [x.split("/")[-1].split(".")[0] for x in input]
