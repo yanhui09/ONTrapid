@@ -8,26 +8,51 @@ def dir_check(dir_path, ext):
         fas = [f for f in fs if f.endswith(ext)]
         if len(fas) == 0:
             raise ValueError("\n  The {} files \n are not found in {}.\n".format(ext, dir_path))
-        else:
-            return True
 
 checkpoint update_assembly:
     output: directory(OUT_DIR + '/assembly_updated')
+    params:
+        updated_assembly_dir = config["updated_assembly_dir"] 
     run:
-        dir_check(config["updated_assembly_dir"], ".fasta")
-        shutil.copytree(config["updated_assembly_dir"], output[0])
+        if not os.path.exists(output[0]):
+            os.makedirs(output[0])
+        dir_check(params.updated_assembly_dir, ".fasta")
+        for f in os.listdir(params.updated_assembly_dir):
+            if f.endswith(".fasta"):
+                with open(os.path.join(params.updated_assembly_dir, f), 'r') as fi:
+                    with open(os.path.join(output[0], f), 'w') as out:
+                        out.write(fi.read())
 
-rule external_gff3s:
+checkpoint external_gff3s:
     output: directory(OUT_DIR + '/external_gff3s')
+    params:
+        external_gff3_dir = config["external_gff3_dir"]
     run:
-        dir_check(config["external_gff3_dir"], ".gff")
-        shutil.copytree(config["external_gff3_dir"], output[0]) 
+        if not os.path.exists(output[0]):
+            os.makedirs(output[0])
+        dir_check(params.external_gff3_dir, ".gff")
+        for f in os.listdir(params.external_gff3_dir):
+            if f.endswith(".gff"):
+                with open(os.path.join(params.external_gff3_dir, f), 'r') as fi:
+                    with open(os.path.join(output[0], f), 'w') as out:
+                        out.write(fi.read())
 
-def get_pansamples(wildcards, update):
+def get_pansamples(wildcards, update=config["update_assembly"], external_gene_calls=config["external_gene_calls"]):
     if update:
-        return glob_wildcards(checkpoints.update_assembly.get(**wildcards).output[0] + "/{sample}.fasta").sample
+        samples = glob_wildcards(checkpoints.update_assembly.get(**wildcards).output[0] + "/{sample}.fasta").sample
     else:
-        return glob_wildcards(checkpoints.collect_assembly.get(**wildcards).output[0] + "/{sample}.fasta").sample
+        samples = glob_wildcards(checkpoints.collect_assembly.get(**wildcards).output[0] + "/{sample}.fasta").sample
+    
+    # if external gene calls are provided, check if matched and return if equal
+    if external_gene_calls:
+        samples_gff = glob_wildcards(checkpoints.external_gff3s.get(**wildcards).output[0] + "/{sample}.gff").sample
+        if set(samples) == set(samples_gff):
+            out = samples
+        else:
+            raise ValueError("\n  The samples in the assembly directory and the external gene calls directory are not matched.\n")
+    else:
+        out = samples
+    return out
 
 def get_assembly_dir(update):
     if update:
@@ -58,18 +83,19 @@ rule contig_db:
 # generate anvio with
 # gff_parser
 rule gff_parse:
-    input: OUT_DIR + "/external_gff3s/{sample}.gff"
+    input: OUT_DIR + "/external_gff3s/{sample}.gff",
     output:
         gene_calls = OUT_DIR + "/pangenomics/gffparse/gene_calls_{sample}.txt",
         gene_annot = OUT_DIR + "/pangenomics/gffparse/gene_annot_{sample}.txt",
     params:
         source = "Prokka",
-    conda: "../envs/anvio.yaml"
+    conda: "../envs/gffutils.yaml"
     log: OUT_DIR + "/logs/pangenomics/gff_parse/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/pangenomics/gff_parse/{sample}.txt"
     shell: 
         "python {workflow.basedir}/scripts/gff_parser.py {input} "
-        "{output.gene_calls} {output.gene_annot} --source {params.source} > {log} 2>&1"
+        "--gene-calls {output.gene_calls} --annotation {output.gene_annot} "
+        "--process-all --source {params.source} > {log} 2>&1"
 
 rule contig_db_external:
     input: 
@@ -89,14 +115,14 @@ rule contig_db_external:
 
 # scheduler to include external gene calls
 def get_contig_db(external_gene_calls=config['external_gene_calls']):
-    if not external_gene_calls:
-        return rules.contig_db.output
-    else:
+    if external_gene_calls:
         return rules.contig_db_external.output
+    else:
+        return rules.contig_db.output
 
 # hmms calculation
 rule run_hmms:
-    input: ancient(get_contig_db)
+    input: ancient(get_contig_db())
     output: OUT_DIR + "/pangenomics/.hmms/.{sample}_DONE"
     conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/run_hmms/{sample}.log"
@@ -106,7 +132,7 @@ rule run_hmms:
 
 # COG annoatation
 rule run_cogs:
-    input: ancient(get_contig_db)
+    input: ancient(get_contig_db())
     output: OUT_DIR + "/pangenomics/.cogs/.{sample}_DONE"
     params:
         COG = COG,
@@ -118,7 +144,7 @@ rule run_cogs:
 
 # KEGG annotation
 rule run_kofams:
-    input: ancient(get_contig_db)
+    input: ancient(get_contig_db())
     output: OUT_DIR + "/pangenomics/.kofams/.{sample}_DONE"
     params:
         KEGG = KEGG,
@@ -130,7 +156,7 @@ rule run_kofams:
 
 # create the GENOME storage
 rule gen_genomes_list:
-    input: ancient(lambda wc: expand(get_contig_db, sample=get_pansamples(wc, config["update_assembly"])))
+    input: ancient(lambda wc: expand(get_contig_db(), sample=get_pansamples(wc)))
     output: OUT_DIR + "/pangenomics/genomes.txt"
     run:
         genomes = [x.split("/")[-1].split(".")[0] for x in input]
@@ -140,9 +166,9 @@ rule gen_genomes_list:
      
 rule gen_genomes_storage:
     input: 
-      lambda wc: expand(OUT_DIR + "/pangenomics/.cogs/.{sample}_DONE", sample=get_pansamples(wc, config["update_assembly"])),
-      lambda wc: expand(OUT_DIR + "/pangenomics/.kofams/.{sample}_DONE", sample=get_pansamples(wc, config["update_assembly"])),
-      lambda wc: expand(OUT_DIR + "/pangenomics/.hmms/.{sample}_DONE", sample=get_pansamples(wc, config["update_assembly"])),
+      lambda wc: expand(OUT_DIR + "/pangenomics/.cogs/.{sample}_DONE", sample=get_pansamples(wc)),
+      lambda wc: expand(OUT_DIR + "/pangenomics/.kofams/.{sample}_DONE", sample=get_pansamples(wc)),
+      lambda wc: expand(OUT_DIR + "/pangenomics/.hmms/.{sample}_DONE", sample=get_pansamples(wc)),
       glist = rules.gen_genomes_list.output,
     output: OUT_DIR + "/pangenomics/GENOMES.db"
     conda: "../envs/anvio.yaml"

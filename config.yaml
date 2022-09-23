@@ -85,8 +85,8 @@ busco:
 # pangenome
 update_assembly: true
 updated_assembly_dir: /mnt/md0/proferment/results/assembly_rename 
-external_gene_calls: false
-external_gff3_dir: /mnt/md0/proferment/results
+external_gene_calls: true
+external_gff3_dir: /mnt/md0/proferment/results/gff3
 
 # variants:
 variants:

@@ -2,7 +2,6 @@ name: anvio
 channels:
   - bioconda
   - conda-forge
-  - anaconda
 dependencies:
   - python=3.6
   - sqlite>=3.31.1
@@ -29,9 +28,7 @@ dependencies:
   - r-optparse
   - bioconductor-qvalue
   - fasttree
-  - fastani 
+  - fastani
   - pip
   - pip:
-    - https://github.com/merenlab/anvio/releases/download/v7.1/anvio-7.1.tar.gz
-  - gffutils
-
+      - https://github.com/merenlab/anvio/releases/download/v7.1/anvio-7.1.tar.gz
