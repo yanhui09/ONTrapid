@@ -82,6 +82,12 @@ busco:
   m: genome
   opts: ''
 
+# pangenome
+update_assembly: true
+updated_assembly_dir: /mnt/md0/proferment/results/assembly_rename 
+external_gene_calls: false
+external_gff3_dir: /mnt/md0/proferment/results
+
 # variants:
 variants:
   ref: /mnt/md0/nano_snp/ref/ecoli_dh5a.fna #/mnt/md0/nano_snp/ref/ecoli_mg1655.fna

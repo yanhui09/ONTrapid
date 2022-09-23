@@ -32,5 +32,6 @@ dependencies:
   - fastani 
   - pip
   - pip:
-      - https://github.com/merenlab/anvio/releases/download/v7.1/anvio-7.1.tar.gz
+    - https://github.com/merenlab/anvio/releases/download/v7.1/anvio-7.1.tar.gz
+  - gffutils
 
