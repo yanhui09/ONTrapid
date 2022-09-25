@@ -1,5 +1,0 @@
-name: gffutils
-channels:
-  - bioconda
-dependencies:
-  - gffutils

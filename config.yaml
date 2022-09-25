@@ -83,10 +83,10 @@ busco:
   opts: ''
 
 # pangenome
-update_assembly: true
+update_assembly: False
 updated_assembly_dir: /mnt/md0/proferment/results/assembly_rename 
-external_gene_calls: true
-external_gff3_dir: /mnt/md0/proferment/results/gff3
+import_from_gbk: False # overide update_assembly
+external_gbk_dir: /mnt/md0/proferment/results/gbk
 
 # variants:
 variants:

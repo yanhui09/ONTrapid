@@ -23,38 +23,30 @@ checkpoint update_assembly:
                     with open(os.path.join(output[0], f), 'w') as out:
                         out.write(fi.read())
 
-checkpoint external_gff3s:
-    output: directory(OUT_DIR + '/external_gff3s')
+checkpoint external_gbks:
+    output: directory(OUT_DIR + '/external_gbks')
     params:
-        external_gff3_dir = config["external_gff3_dir"]
+        external_gbk_dir = config["external_gbk_dir"]
     run:
         if not os.path.exists(output[0]):
             os.makedirs(output[0])
-        dir_check(params.external_gff3_dir, ".gff")
-        for f in os.listdir(params.external_gff3_dir):
-            if f.endswith(".gff"):
-                with open(os.path.join(params.external_gff3_dir, f), 'r') as fi:
+        dir_check(params.external_gbk_dir, ".gbk")
+        for f in os.listdir(params.external_gbk_dir):
+            if f.endswith(".gbk"):
+                with open(os.path.join(params.external_gbk_dir, f), 'r') as fi:
                     with open(os.path.join(output[0], f), 'w') as out:
                         out.write(fi.read())
 
-def get_pansamples(wildcards, update=config["update_assembly"], external_gene_calls=config["external_gene_calls"]):
-    if update:
-        samples = glob_wildcards(checkpoints.update_assembly.get(**wildcards).output[0] + "/{sample}.fasta").sample
+def get_pansamples(wildcards, update=config["update_assembly"], import_from_gbk=config["import_from_gbk"]):
+    if import_from_gbk is True:
+        return glob_wildcards(checkpoints.external_gbks.get(**wildcards).output[0] + "/{sample}.gbk").sample
     else:
-        samples = glob_wildcards(checkpoints.collect_assembly.get(**wildcards).output[0] + "/{sample}.fasta").sample
-    
-    # if external gene calls are provided, check if matched and return if equal
-    if external_gene_calls:
-        samples_gff = glob_wildcards(checkpoints.external_gff3s.get(**wildcards).output[0] + "/{sample}.gff").sample
-        if set(samples) == set(samples_gff):
-            out = samples
+        if update is True:
+            return glob_wildcards(checkpoints.update_assembly.get(**wildcards).output[0] + "/{sample}.fasta").sample
         else:
-            raise ValueError("\n  The samples in the assembly directory and the external gene calls directory are not matched.\n")
-    else:
-        out = samples
-    return out
+            return glob_wildcards(checkpoints.collect_assembly.get(**wildcards).output[0] + "/{sample}.fasta").sample
 
-def get_assembly_dir(update):
+def get_assembly_dir(update=config["update_assembly"]):
     if update:
         return OUT_DIR + '/assembly_updated'
     else:
@@ -63,12 +55,12 @@ def get_assembly_dir(update):
 # build anvio contig database
 # clean the fasta header if possible, especially for NCBI ref
 rule reformat_fasta:
-    input: get_assembly_dir(config["update_assembly"]) + "/{sample}.fasta" 
+    input: get_assembly_dir() + "/{sample}.fasta" 
     output: OUT_DIR + "/pangenomics/reformated/{sample}.fasta"
     conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/reformat_fasta/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/pangenomics/reformat_fasta/{sample}.txt"
-    shell: "anvi-script-reformat-fasta {input} -o {output} -l 0 --simplify-names > {log} 2>&1"
+    shell: "anvi-script-reformat-fasta {input} -o {output} -l 0 > {log} 2>&1"
 
 # generate anvio contig db
 rule contig_db:
@@ -81,27 +73,28 @@ rule contig_db:
     shell: "anvi-gen-contigs-database -f {input} -o {output} -n 'proj' -T {threads} > {log} 2>&1"
 
 # generate anvio with
-# gff_parser
-rule gff_parse:
-    input: OUT_DIR + "/external_gff3s/{sample}.gff",
+# gbk_parser
+rule gbk_parse:
+    input: OUT_DIR + "/external_gbks/{sample}.gbk",
     output:
-        gene_calls = OUT_DIR + "/pangenomics/gffparse/gene_calls_{sample}.txt",
-        gene_annot = OUT_DIR + "/pangenomics/gffparse/gene_annot_{sample}.txt",
+        fasta = OUT_DIR + "/pangenomics/gbk_parse/{sample}.fasta",
+        gene_calls = OUT_DIR + "/pangenomics/gbk_parse/gene_calls_{sample}.txt",
+        gene_annot = OUT_DIR + "/pangenomics/gbk_parse/gene_annot_{sample}.txt",
     params:
         source = "Prokka",
-    conda: "../envs/gffutils.yaml"
-    log: OUT_DIR + "/logs/pangenomics/gff_parse/{sample}.log"
-    benchmark: OUT_DIR + "/benchmarks/pangenomics/gff_parse/{sample}.txt"
+    conda: "../envs/anvio.yaml"
+    log: OUT_DIR + "/logs/pangenomics/gbk_parse/{sample}.log"
+    benchmark: OUT_DIR + "/benchmarks/pangenomics/gbk_parse/{sample}.txt"
     shell: 
-        "python {workflow.basedir}/scripts/gff_parser.py {input} "
-        "--gene-calls {output.gene_calls} --annotation {output.gene_annot} "
-        "--process-all --source {params.source} > {log} 2>&1"
+        "anvi-script-process-genbank -i {input} "
+        "--output-fasta {output.fasta} --output-gene-calls {output.gene_calls} --output-functions {output.gene_annot} "
+        "--annotation-source external_gbk --annotation-version unknown"
 
 rule contig_db_external:
     input: 
-        fasta = ancient(OUT_DIR + "/pangenomics/reformated/{sample}.fasta"),
-        gene_calls = rules.gff_parse.output.gene_calls,
-        gene_annot = rules.gff_parse.output.gene_annot,
+        fasta = rules.gbk_parse.output.fasta,
+        gene_calls = rules.gbk_parse.output.gene_calls,
+        gene_annot = rules.gbk_parse.output.gene_annot,
     output: OUT_DIR + "/pangenomics/contig_db_external/{sample}.db"
     conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/contig_db_external/{sample}.log"
@@ -114,8 +107,8 @@ rule contig_db_external:
         """
 
 # scheduler to include external gene calls
-def get_contig_db(external_gene_calls=config['external_gene_calls']):
-    if external_gene_calls:
+def get_contig_db(import_from_gbk=config['import_from_gbk']):
+    if import_from_gbk:
         return rules.contig_db_external.output
     else:
         return rules.contig_db.output
@@ -163,7 +156,14 @@ rule gen_genomes_list:
         with open(output[0], "w") as f:
             f.write("name\tcontigs_db_path\n")
             f.write("\n".join(["\t".join(x) for x in zip(genomes, input)]))  
-     
+
+# include different gene callers
+def get_gene_callers(import_from_gbk=config['import_from_gbk']):
+    if import_from_gbk:
+        return "--gene-caller external_gbk"
+    else:
+        return "--gene-caller prodigal"
+
 rule gen_genomes_storage:
     input: 
       lambda wc: expand(OUT_DIR + "/pangenomics/.cogs/.{sample}_DONE", sample=get_pansamples(wc)),
@@ -171,10 +171,12 @@ rule gen_genomes_storage:
       lambda wc: expand(OUT_DIR + "/pangenomics/.hmms/.{sample}_DONE", sample=get_pansamples(wc)),
       glist = rules.gen_genomes_list.output,
     output: OUT_DIR + "/pangenomics/GENOMES.db"
+    params: 
+        gene_callers = get_gene_callers(),
     conda: "../envs/anvio.yaml"
     log: OUT_DIR + "/logs/pangenomics/gen_genomes_storage.log"
     benchmark: OUT_DIR + "/benchmarks/pangenomics/gen_genomes_storage.txt"
-    shell: "anvi-gen-genomes-storage -e {input.glist} -o {output}"
+    shell: "anvi-gen-genomes-storage -e {input.glist} -o {output} {params.gene_callers} > {log} 2>&1"
 
 # pangenomics analysis
 rule pan_genome:
