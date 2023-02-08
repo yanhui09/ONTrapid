@@ -8,13 +8,14 @@ rule flye:
     message: "Assembly with Flye [{wildcards.sample}]"
     params:
         mode=config["flye"]["mode"],
+        ex_args=config["flye"]["ex_args"],
     conda: "../envs/flye.yaml"
     log: OUT_DIR + "/logs/flye/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/flye/{sample}.txt"
     threads: config["threads"]["large"]
     shell:
         """
-        flye {params.mode} {input.fastq} --out-dir {output._dir} \
+        flye {params.mode} {params.ex_args} {input.fastq} --out-dir {output._dir} \
         --threads {threads} > {log} 2>&1
         """
 

@@ -30,6 +30,7 @@ assembler_opts: flye # default, canu, flye
 # assembler params
 flye:
   mode: --nano-raw
+  ex_args: 
 
 canu:
   size: 5m # estimated genomesize
