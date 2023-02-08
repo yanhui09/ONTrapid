@@ -15,8 +15,8 @@ rule flye:
     threads: config["threads"]["large"]
     shell:
         """
-        flye {params.mode} {params.ex_args} {input.fastq} --out-dir {output._dir} \
-        --threads {threads} > {log} 2>&1
+        flye {params.mode} {input.fastq} --out-dir {output._dir} \
+        --threads {threads} {params.ex_args} > {log} 2>&1
         """
 
 # canu
