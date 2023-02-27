@@ -45,9 +45,20 @@ python init.py -p /path/to/raw/data -o /path/to/working/directory
 │       └── barcode12
 ```
 
+## All (assembly + pangenome)
+
+```
+snakemake all -j 24 --use-conda --config work_dir=/path/to/working/directory
+```
+
 ## Assembly
 ```
-snakemake -j 24 --use-conda --config work_dir=/path/to/working/directory
+snakemake assemble -j 24 --use-conda --config work_dir=/path/to/working/directory
+```
+
+## Pangenome
+```
+snakemake pangenome -j 24 --use-conda --config work_dir=/path/to/working/directory
 ```
 
 ## Variants calling
