@@ -8,7 +8,7 @@ rule flye:
     message: "Assembly with Flye [{wildcards.sample}]"
     params:
         mode=config["flye"]["mode"],
-        ex_args=config["flye"]["ex_args"],
+        ex_args="" if config["flye"]["ex_args"] is None else config["flye"]["ex_args"], 
     conda: "../envs/flye.yaml"
     log: OUT_DIR + "/logs/flye/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/flye/{sample}.txt"
