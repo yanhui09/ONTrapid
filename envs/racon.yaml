@@ -1,0 +1,8 @@
+name: racon
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - racon
+  - minimap2
+  - samtools

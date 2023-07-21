@@ -10,7 +10,7 @@ rule medaka_haploid_variants:
         m=config["variants"]["medaka"]["model"],
         _dir=OUT_DIR + "/variants/{sample}/medaka",
         fasta = REF, 
-    conda: "../envs/polish.yaml"
+    conda: "../envs/medaka.yaml"
     log: OUT_DIR + "/logs/varaints/medaka/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/variants/medaka/{sample}.txt"
     threads: config["threads"]["large"]
@@ -35,7 +35,7 @@ rule faidx:
         ref = OUT_DIR + "/variants/ref.fasta",
         fai = OUT_DIR + "/variants/ref.fasta.fai", 
     message: "Index the reference with samtools"
-    conda: "../envs/polish.yaml"
+    conda: "../envs/racon.yaml"
     log: OUT_DIR + "/logs/varaints/faidx.log"
     benchmark: OUT_DIR + "/benchmarks/variants/faidx.txt"
     shell: 
@@ -55,7 +55,7 @@ rule minimap_bams:
     params:
         _dir=OUT_DIR + "/variants/{sample}/clair",
         x=config["minimap"]["x"],
-    conda: "../envs/polish.yaml"
+    conda: "../envs/racon.yaml"
     log: OUT_DIR + "/logs/varaints/minimap_bams/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/variants/minimap_bams/{sample}.txt"
     threads: config["threads"]["large"]

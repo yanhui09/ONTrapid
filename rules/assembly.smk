@@ -134,7 +134,7 @@ rule minimap:
     message: "{wildcards.f}2polish: alignments against {wildcards.assembly} assembly [{wildcards.sample}]"
     params:
         x=config["minimap"]["x"]
-    conda: "../envs/polish.yaml"
+    conda: "../envs/racon.yaml"
     log: OUT_DIR + "/logs/minimap/{sample}/{f}2polish/{assembly}.log"
     benchmark: OUT_DIR + "/benchmarks/minimap/{sample}/{f}2polish/{assembly}.txt"
     threads: config["threads"]["large"]
@@ -162,7 +162,7 @@ rule racon:
         x=config["racon"]["x"],
         g=config["racon"]["g"],
         w=config["racon"]["w"],
-    conda: "../envs/polish.yaml"
+    conda: "../envs/racon.yaml"
     log: OUT_DIR +"/logs/polish/racon/{sample}/{f}/round{iter}.log"
     benchmark: OUT_DIR +"/benchmarks/polish/racon/{sample}/{f}/round{iter}.txt"
     threads: config["threads"]["large"]
@@ -182,7 +182,7 @@ rule medaka_consensus:
     params:
         m=config["medaka"]["m"],
         _dir=OUT_DIR + "/{sample}/{f}2polish",
-    conda: "../envs/polish.yaml"
+    conda: "../envs/medaka.yaml"
     log: OUT_DIR + "/logs/polish/medaka/{sample}/{f}.log"
     benchmark: OUT_DIR + "/benchmarks/polish/medaka/{sample}/{f}.txt"
     threads: config["threads"]["large"]
