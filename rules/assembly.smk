@@ -253,7 +253,8 @@ rule quast_summary:
         quast_stats = pd.DataFrame()
         for dir in input:
             d = pd.read_csv(dir + "/report.tsv", sep="\t", skiprows=1, index_col=0, header=None)
-            quast_stats = quast_stats.append(d.T)
+            # append deprecated as of pandas 2.0
+            quast_stats = pd.concat([quast_stats, d.T])
         
         quast_stats.index = [os.path.split(x)[-1] for x in input]
         quast_stats.T.to_csv(output[0], sep="\t")
@@ -280,7 +281,7 @@ rule busco_summary:
         busco_stats = pd.DataFrame()
         for dir in input:
             d = busco2tdf(dir + "/summary.txt")
-            busco_stats = busco_stats.append(d.T)
+            busco_stats = pd.concat([busco_stats, d.T])
         
         busco_stats.index = [os.path.split(x)[-1] for x in input]
         busco_stats.T.to_csv(output[0], sep="\t")
