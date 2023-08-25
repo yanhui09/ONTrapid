@@ -1,6 +1,13 @@
 name: medaka
 channels:
-  - conda-forge
   - bioconda
+  - conda-forge
+  - defaults
 dependencies:
-  - medaka
+  - python=3.8
+  - minimap2
+  - samtools
+  - bcftools
+  - pyabpoa
+  - pip:
+    - medaka>=1.8
