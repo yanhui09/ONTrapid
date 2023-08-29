@@ -28,7 +28,11 @@ include: "rules/variants.smk"
 #---------------------------------
 rule all:
     input:
-        expand(OUT_DIR + "/.{rule}_DONE", rule=["assemble", "initDB", "pangenome"])
+        expand(OUT_DIR + "/{sample}/{qc}/busco_summary.tsv", sample=SAMPLES, qc=["busco", "quast"]),
+        OUT_DIR + "/assembly/",
+        rules.pan_genome.output.db,
+        rules.calc_genome_similarity.output,
+        rules.anvi_sum.output,
 
 
 rule assemble:
@@ -36,17 +40,14 @@ rule assemble:
         expand(OUT_DIR + "/{sample}/{qc}_summary.tsv", 
         sample=SAMPLES, qc=["busco", "quast"]),
         OUT_DIR + "/assembly/",
-    output: touch(OUT_DIR + "/.assemble_DONE")
 
 rule initDB:
     input:
         rules.setup_cogs.output,
         rules.setup_kofams.output,
-    output: touch(OUT_DIR + "/.initDB_DONE")
 
 rule pangenome:
     input:
         rules.pan_genome.output.db,
         rules.calc_genome_similarity.output,
         rules.anvi_sum.output,
-    output: touch(OUT_DIR + "/.pangenome_DONE")

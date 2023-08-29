@@ -88,7 +88,7 @@ rule quickmerge:
 # circlize genome and use dnaA as start if possible
 rule circlator:
     input:
-        fasta = OUT_DIR + "/{sample}/quickmerge2polish/assembly.fasta",
+        fasta = OUT_DIR + "/{sample}/quickmerge/assembly.fasta",
         fastq_cor = rules.canu.output.fastq_cor,
     output:
         fasta = OUT_DIR + "/{sample}/circlator/assembly.fasta",
@@ -126,17 +126,17 @@ rule get_polish_input:
 
 # align merged assemblies with raw reads
 # reused in racon iterations
-rule minimap:
+rule minimap2:
     input: 
       ref = OUT_DIR + "/{sample}/{f}2polish/{assembly}.fasta",
       fastq = rules.nanofilt.output,
     output: OUT_DIR + "/{sample}/{f}2polish/{assembly}.paf"
     message: "{wildcards.f}2polish: alignments against {wildcards.assembly} assembly [{wildcards.sample}]"
     params:
-        x=config["minimap"]["x"]
+        x=config["minimap2"]["x"]
     conda: "../envs/racon.yaml"
-    log: OUT_DIR + "/logs/minimap/{sample}/{f}2polish/{assembly}.log"
-    benchmark: OUT_DIR + "/benchmarks/minimap/{sample}/{f}2polish/{assembly}.txt"
+    log: OUT_DIR + "/logs/minimap2/{sample}/{f}2polish/{assembly}.log"
+    benchmark: OUT_DIR + "/benchmarks/minimap2/{sample}/{f}2polish/{assembly}.txt"
     threads: config["threads"]["large"]
     shell:
         "minimap2 -t {threads} -x {params.x}"
@@ -218,13 +218,13 @@ def get_assembly(wildcards, racon_iter = config["racon"]["iter"], medaka_iter = 
         if int(racon_iter) == 0:
             return(OUT_DIR + "/{sample}/{f}2polish/raw.fasta".format(sample=wildcards.sample, f=wildcards.f))
         else: 
-            return(OUT_DIR + "{sample}/{f}2polish/racon_{iter}.fasta".format(
+            return(OUT_DIR + "/{sample}/{f}2polish/racon_{iter}.fasta".format(
                 sample=wildcards.sample, f=wildcards.f, iter=racon_iter))
     else:
-        return(OUT_DIR + "{sample}/{f}2polish/medaka_{iter}/consensus.fasta".format(
+        return(OUT_DIR + "/{sample}/{f}2polish/medaka_{iter}/consensus.fasta".format(
             sample=wildcards.sample, f=wildcards.f, iter=medaka_iter))
 
-rule collect_polished_assembly:
+rule get_polished_assembly:
     input: lambda wc: get_assembly(wc),
     output: OUT_DIR + "/{sample}/{f}2polish/assembly.fasta"
     shell: "cp {input} {output}"
