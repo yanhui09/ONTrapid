@@ -1,4 +1,4 @@
-work_dir: "/mnt/md0/metapredict"
+work_dir: "/mnt/md0/ontrapid"
 database_dir: "/mnt/md0/Database/anvio"
 
 threads:
@@ -11,11 +11,11 @@ memory:
 
 # rasusa params (subsampling for speed)
 rasusa:
-  subsampling: TRUE
+  subsampling: True
   coverage: 30
   genome_size: 2.4mb
 
-use_porchop: TRUE
+use_porchop: False
 # nanofilt params
 nanofilt:
   l: 500
@@ -75,7 +75,9 @@ racon:
 
 # medaka params:
 medaka:
-  m: r941_min_hac_g507
+  iter: 1 
+  m: r1041_e82_400bps_hac_v4.2.0
+  cudnn: False
 
 # assembly qc
 busco:

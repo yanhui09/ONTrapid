@@ -154,7 +154,7 @@ def get_racon_input(wildcards):
 rule racon:
     input:
         rules.nanofilt.output,
-        get_racon_input,
+        lambda wc: get_racon_input(wc),
     output: OUT_DIR + "/{sample}/{f}2polish/racon_{iter}.fasta"
     message: "Polish {wildcards.f} assemblies with racon, round={wildcards.iter} [{wildcards.sample}]"
     params:
@@ -163,36 +163,71 @@ rule racon:
         g=config["racon"]["g"],
         w=config["racon"]["w"],
     conda: "../envs/racon.yaml"
-    log: OUT_DIR +"/logs/polish/racon/{sample}/{f}/round{iter}.log"
-    benchmark: OUT_DIR +"/benchmarks/polish/racon/{sample}/{f}/round{iter}.txt"
+    log: OUT_DIR + "/logs/polish/racon/{sample}/{f}/round{iter}.log"
+    benchmark: OUT_DIR + "/benchmarks/polish/racon/{sample}/{f}/round{iter}.txt"
     threads: config["threads"]["large"]
     shell:
         "racon -m {params.m} -x {params.x}"
         " -g {params.g} -w {params.w} -t {threads}"
         " {input} > {output} 2> {log}"
 
+# add iter for medaka
+def get_medaka_files(wildcards, racon_iter = config["racon"]["iter"], index = False):
+    if int(wildcards.iter2) == 1:
+        if int(racon_iter) == 0:
+            fna = OUT_DIR + "/{sample}/{f}2polish/raw.fasta".format(sample=wildcards.sample, f=wildcards.f)
+        else:
+            fna = OUT_DIR + "/{sample}/{f}2polish/racon_{iter}.fasta".format(
+                sample=wildcards.sample, f=wildcards.f, iter=racon_iter)
+    else:
+        fna = OUT_DIR + "/{sample}/{f}2polish/medaka_{iter}/consensus.fasta".format(
+            sample=wildcards.sample, f=wildcards.f, iter=str(int(wildcards.iter2) - 1))
+    if index == True:
+        return(fna + ".fai", fna + ".map-ont.mmi")
+    else:
+        return(fna)
+
 rule medaka_consensus:
     input:
-        fasta = expand(OUT_DIR + "/{{sample}}/{{f}}2polish/racon_{iter}.fasta", 
-        iter = config["racon"]["iter"]),
+        fna = lambda wc: get_medaka_files(wc),
         fastq = rules.nanofilt.output,
     output: 
-        fasta = OUT_DIR + "/{sample}/{f}2polish/assembly.fasta",
-    message: "Generate consensus for {wildcards.f} assemblies with medaka [{wildcards.sample}]"
+        temp(expand(OUT_DIR + "/{{sample}}/{{f}}2polish/medaka_{{iter2}}/consensus{ext}",
+        ext = [".fasta", ".fasta.gaps_in_draft_coords.bed", "_probs.hdf"])),
+        temp(expand(OUT_DIR + "/{{sample}}/{{f}}2polish/medaka_{{iter2}}/calls{ext}",
+        ext = ["_to_draft.bam", "_to_draft.bam.bai"])),
+    message: "generate consensus for {wildcards.f} assemblies with medaka [{wildcards.sample}], round={wildcards.iter2}"
     params:
-        m=config["medaka"]["m"],
-        _dir=OUT_DIR + "/{sample}/{f}2polish",
+        m = config["medaka"]["m"],
+        cudnn = 'CUDA_VISIBLE_DEVICES=""' if config["medaka"]["cudnn"] is False else 'TF_FORCE_GPU_ALLOW_GROWTH=true',
+        _dir=OUT_DIR + "/{sample}/{f}2polish/medaka_{iter2}",
+        inedxs = lambda wc: get_medaka_files(wc, index = True),
     conda: "../envs/medaka.yaml"
-    log: OUT_DIR + "/logs/polish/medaka/{sample}/{f}.log"
-    benchmark: OUT_DIR + "/benchmarks/polish/medaka/{sample}/{f}.txt"
+    log: OUT_DIR + "/logs/polish/medaka/{sample}/{f}/round{iter2}.log"
+    benchmark: OUT_DIR + "/benchmarks/polish/medaka/{sample}/{f}/round{iter2}.txt"
     threads: config["threads"]["large"]
     shell:
         """
-        medaka_consensus -i {input.fastq} \
-        -d {input.fasta} -o {params._dir}/medaka \
-        -t {threads} -m {params.m} > {log} 2>&1;
-        cp {params._dir}/medaka/consensus.fasta {output.fasta}
+        export {params.cudnn}
+        medaka_consensus -i {input.fastq} -d {input.fna} -o {params._dir} -t {threads} -m {params.m} > {log} 2>&1
+        rm -f {params.inedxs}
         """
+
+def get_assembly(wildcards, racon_iter = config["racon"]["iter"], medaka_iter = config["medaka"]["iter"]):
+    if int(medaka_iter) == 0:
+        if int(racon_iter) == 0:
+            return(OUT_DIR + "/{sample}/{f}2polish/raw.fasta".format(sample=wildcards.sample, f=wildcards.f))
+        else: 
+            return(OUT_DIR + "{sample}/{f}2polish/racon_{iter}.fasta".format(
+                sample=wildcards.sample, f=wildcards.f, iter=racon_iter))
+    else:
+        return(OUT_DIR + "{sample}/{f}2polish/medaka_{iter}/consensus.fasta".format(
+            sample=wildcards.sample, f=wildcards.f, iter=medaka_iter))
+
+rule collect_polished_assembly:
+    input: lambda wc: get_assembly(wc),
+    output: OUT_DIR + "/{sample}/{f}2polish/assembly.fasta"
+    shell: "cp {input} {output}"
 
 rule quast:
     input: OUT_DIR + "/{sample}/{f}/assembly.fasta"
