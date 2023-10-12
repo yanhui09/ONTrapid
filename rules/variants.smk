@@ -54,7 +54,7 @@ rule minimap_bams:
     message: "Generate bam file with minimap2 [{wildcards.sample}]"
     params:
         _dir=OUT_DIR + "/variants/{sample}/clair",
-        x=config["minimap"]["x"],
+        x=config["minimap2"]["x"],
     conda: "../envs/racon.yaml"
     log: OUT_DIR + "/logs/varaints/minimap_bams/{sample}.log"
     benchmark: OUT_DIR + "/benchmarks/variants/minimap_bams/{sample}.txt"
